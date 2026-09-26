@@ -69,7 +69,7 @@ ${steps}
 
 ${tbl}
 
-**Environment:** cockpit ${f.env.cockpitUrl} · Chromium headed · ${f.env.viewport.width}×${f.env.viewport.height} · sim speed ${f.env.speed}× · ${machine} · ${f.startedAt} · ${f.durationS} s
+**Environment:** cockpit ${f.env.cockpitUrl} · Chromium headed · WebGL renderer: ${f.observations.webgl ?? 'unknown'} · ${f.env.viewport.width}×${f.env.viewport.height} · sim speed ${f.env.speed}× · ${machine} · ${f.startedAt} · ${f.durationS} s
 
 **Evidence:** the video above (the HUD shows the table filling in as the fleet grows); \`qa/out/traces/L2-1.zip\` (Playwright trace); \`qa/out/findings/L2-1.json\` (every sample, including all click timings).
 

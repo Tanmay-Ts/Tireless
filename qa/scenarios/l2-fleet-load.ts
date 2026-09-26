@@ -66,6 +66,13 @@ export const L2_1: Scenario = {
       const c = await installPerf(context, page);
       await page.goto(cfg.cockpitUrl, { waitUntil: 'domcontentloaded' });
       await driver.waitFor(async () => !!(await locate(page, T.map2d)).loc, 40000, 'cockpit and map loaded');
+      obs.webgl = await page
+        .evaluate(() => {
+          const gl = document.createElement('canvas').getContext('webgl');
+          const ext = gl?.getExtension('WEBGL_debug_renderer_info');
+          return ext ? String(gl!.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : 'unknown';
+        })
+        .catch(() => 'unknown');
       await page.getByTestId('device-row-drone-1').click({ timeout: 20000 });
       await driver.takeoff('drone-1');
       await sleep(3000);
@@ -85,8 +92,9 @@ export const L2_1: Scenario = {
       await hud.step(i === 0 ? 2 : 3, 'run', i === 0 ? undefined : `now ${level} drones in flight`);
       while (4 + added.length < level) added.push((await driver.addDrone()).drone.id);
       for (const id of added.slice(-(level - (LEVELS[i - 1] ?? 4)))) await driver.takeoff(id).catch(() => {});
-      await hud.countdown(`${level} drones: letting the load settle`, SETTLE_MS);
-      await sleep(SETTLE_MS);
+      const settle = i === 0 ? 12000 : SETTLE_MS; // the baseline also waits for the map to finish loading
+      await hud.countdown(`${level} drones: letting the load settle`, settle);
+      await sleep(settle);
       await hud.countdown(`${level} drones: measuring 6 s of browser load`, WINDOW_MS);
       log(`${level} drones: measuring browser load`);
       const m = await measureWindow(page, cdp, WINDOW_MS);
