@@ -1,0 +1,11 @@
+{
+  "id": "gen-05-video-tile-removed",
+  "category": "element removed",
+  "file": "frontend/src/pages/CockpitPage.tsx",
+  "search": "<VideoTile />",
+  "replace": "{null}",
+  "breaks": "Removes the VideoTile from the cockpit layout so the FPV video panel is never mounted for the selected drone (import stays but is unused; noUnusedLocals is off so it still compiles).",
+  "briefLine": "Selecting a drone shows its state, telemetry, map location, video, warnings and freshness together",
+  "expectedImpact": "After selecting a drone the operator no longer sees any video feed or its state; the video panel is entirely absent.",
+  "expectCheck": "K1"
+}

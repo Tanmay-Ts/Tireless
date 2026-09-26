@@ -1,0 +1,13 @@
+diff --git a/frontend/src/components/VideoTile.tsx b/frontend/src/components/VideoTile.tsx
+index 7d831d3..415b130 100644
+--- a/frontend/src/components/VideoTile.tsx
++++ b/frontend/src/components/VideoTile.tsx
+@@ -12,7 +12,7 @@ export function VideoTile() {
+   const videoRef = useRef<HTMLVideoElement>(null);
+   const [state, setState] = useState<WhepState>('connecting');
+ 
+-  const enabled = video?.enabled === true && !!video.url;
++  const enabled = video?.enabled === false && !!video.url;
+ 
+   useEffect(() => {
+     const el = videoRef.current;

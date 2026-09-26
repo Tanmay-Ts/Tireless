@@ -1,0 +1,13 @@
+diff --git a/frontend/src/pages/CockpitPage.tsx b/frontend/src/pages/CockpitPage.tsx
+index f954872..46b036b 100644
+--- a/frontend/src/pages/CockpitPage.tsx
++++ b/frontend/src/pages/CockpitPage.tsx
+@@ -55,7 +55,7 @@ export function CockpitPage() {
+         <Suspense fallback={<div className="map-loading">Loading map…</div>}>
+           <CesiumMap />
+         </Suspense>
+-        <VideoTile />
++        {null}
+       </main>
+       <AlertToasts />
+     </div>

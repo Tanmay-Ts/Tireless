@@ -1,0 +1,11 @@
+{
+  "id": "gen-03-device-name-raw-html",
+  "category": "basic security",
+  "file": "frontend/src/components/DeviceList.tsx",
+  "search": "<span className=\"device-name\">{drone.name}</span>",
+  "replace": "<span className=\"device-name\" dangerouslySetInnerHTML={{ __html: drone.name }} />",
+  "breaks": "Renders the drone name as raw HTML instead of escaped text, injecting any markup or script contained in the name straight into the DOM.",
+  "briefLine": "Works in modern browsers on phones, tablets, laptops and desktops",
+  "expectedImpact": "A drone named with HTML (e.g. an img onerror or script tag) executes in the operator's browser instead of showing as literal text.",
+  "expectCheck": "K7"
+}

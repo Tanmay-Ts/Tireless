@@ -1,0 +1,11 @@
+{
+  "id": "gen-04-left-panel-clipped-phone",
+  "category": "control off-screen at phone width",
+  "file": "frontend/src/styles.css",
+  "search": ".cockpit-left { border-right: none; border-bottom: 1px solid var(--outline-primary); }",
+  "replace": ".cockpit-left { border-right: none; border-bottom: 1px solid var(--outline-primary); overflow: hidden; }",
+  "breaks": "Adds overflow:hidden to the fixed 220px-tall left panel only inside the max-width:800px media query, clipping device/telemetry content below the fold with no way to scroll to it.",
+  "briefLine": "Works in modern browsers on phones, tablets, laptops and desktops",
+  "expectedImpact": "On a phone the lower telemetry rows and device entries are cut off and unreachable because the panel can no longer scroll.",
+  "expectCheck": "K6"
+}

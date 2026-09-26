@@ -1,0 +1,11 @@
+{
+  "id": "gen-01-video-live-shown-off",
+  "category": "status shown wrong",
+  "file": "frontend/src/components/VideoTile.tsx",
+  "search": "const enabled = video?.enabled === true && !!video.url;",
+  "replace": "const enabled = video?.enabled === false && !!video.url;",
+  "breaks": "Inverts the video-enabled test so an enabled live stream is treated as disabled and the tile renders the 'Video off' placeholder with state 'off'.",
+  "briefLine": "makes clear whether information is live, delayed, stale, disconnected or unavailable",
+  "expectedImpact": "The operator sees 'Video off' and status 'off' for a drone that is actually streaming a live FPV feed.",
+  "expectCheck": "K4"
+}
