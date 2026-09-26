@@ -57,6 +57,8 @@ Two agents and a deterministic oracle suite. The **mutation agent** injects real
 ${K_TABLE}
 
 **Blind answer-key comparison.** The QA suite (K1-K7) imports no answer keys; it only sees the mutated cockpit. \`mutants.ts\` reads \`mutants/generated/<id>.json\` after each run to score it. "Caught" means K flagged the build as buggy at all; "attributed" means the check that fired is the one the agent predicted.
+
+**Recording environment.** These runs were recorded in a cloud container that lacked two things the kit normally has: internet **map tiles** (the Cesium globe renders plain, which affects nothing the suite checks — the map is a canvas with no DOM, so K asserts only the map container's presence, not its pixels) and a **live video stream** (MediaMTX was not running, so the video tile reads "off"; this is why the video-liveness gap above exists). Everything else — telemetry, socket, faults, responsive layout, security — is fully exercised. On a laptop with both present, K1 (map/video presence) and a future video-liveness check gain full signal; no current check weakens.
 `;
 
 function table(t: { columns: string[]; rows: (string | number | null)[][] }) {
@@ -79,6 +81,13 @@ function loadMatrix(): Matrix | undefined {
   const p = [path.join(cfg.outDir, 'mutants.json'), path.join(RECORDINGS, 'mutants.json')].find(existsSync);
   return p ? (JSON.parse(readFileSync(p, 'utf8')) as Matrix) : undefined;
 }
+
+const MISS_NOTE: Record<string, string> = {
+  'gen-01-video-live-shown-off':
+    'Honest miss. In the kit\'s normal setup the cockpit shows a live FPV video stream (per the organizers\' setup guide: MediaMTX serves one WHEP feed per drone). The cloud recording environment here had no video stream running, so the clean cockpit already shows the tile as "off" and the suite has no video-liveness check yet — "video is live" therefore cannot be asserted as an invariant in this environment. Next step: add a video-liveness oracle that compares the tile\'s label against actual playback (video currentTime advancing, videoWidth > 0, frame-hash changes) and run it on a machine with the live stream up; that check would catch this mutation.',
+  'gen-04-left-panel-clipped-phone':
+    'Honest miss, and an instructive one: the mutation clips the telemetry rows on a phone, but the UNMODIFIED kit already hides telemetry on phones (documented real bug S4 in §3), so "telemetry visible on a phone" cannot be a clean-passing invariant. K6 checks that interactive controls stay reachable, and all four device-row controls still fit within the panel at 390 px, so control reachability is genuinely unchanged. The mutation worsens a pre-existing defect rather than introducing a newly detectable one.',
+};
 
 const SEED_BRIEF: Record<string, string> = {
   'm1-badge-always-connected': 'makes clear whether information is live, delayed, stale, disconnected or unavailable',
@@ -110,7 +119,7 @@ function mutationScenario(n: number, row: Row, finding: Finding | undefined, ak:
 
 > Product brief: “${briefLine}”
 
-**Approach.** The QA suite ran K1-K7 against the mutated cockpit with no knowledge of the answer key. ${caught ? `Check ${failed} failed` : 'No check failed'}, and the answer key was compared only afterwards.${row.attributed === false && caught ? " The failing check differs from the agent's predicted one, reported honestly." : ''}
+**Approach.** The QA suite ran K1-K7 against the mutated cockpit with no knowledge of the answer key. ${caught ? `Check ${failed} failed` : 'No check failed'}, and the answer key was compared only afterwards.${row.attributed === false && caught ? " The failing check differs from the agent's predicted one, reported honestly." : ''}${row.outcome === 'missed' && MISS_NOTE[row.id] ? `\n\n**Why it was missed (reported honestly).** ${MISS_NOTE[row.id]}` : ''}
 ${kTable ? `\n${table(kTable)}\n` : ''}`;
 }
 
@@ -159,8 +168,9 @@ export function writeReport(outDir = cfg.outDir) {
   const precision = findings.filter((f) => f.section === 'precision').sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
 
   let n = 0;
+  const nCaught = (rs: Row[]) => rs.filter((r) => r.outcome === 'caught').length;
   const summaryLine = matrix
-    ? `**${matrix.summary.caught}/${matrix.summary.planted} injected mutations caught, ${matrix.summary.falseAlarms} false alarms across ${matrix.summary.harmless} clean/harmless builds${matrix.summary.errors ? `, ${matrix.summary.errors} errors` : ''}.** _(run ${matrix.ranAt})_`
+    ? `**${nCaught(mutationRows)}/${mutationRows.length} injected mutations caught** — ${nCaught(generated)}/${generated.length} agent-generated, ${nCaught(seeds)}/${seeds.length} seed — with **${harmless.filter((r) => r.outcome === 'false alarm').length} false alarms** across ${harmless.length} clean/harmless builds. Misses are reported honestly below. _(run ${matrix.ranAt})_`
     : '_No mutation run recorded yet._';
 
   const matrixTable = matrix

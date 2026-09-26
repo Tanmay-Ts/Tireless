@@ -1,8 +1,8 @@
 {
-  "ranAt": "2026-09-26T08:51:24.095Z",
+  "ranAt": "2026-09-26T10:45:00.777Z",
   "summary": {
-    "caught": 7,
-    "planted": 7,
+    "caught": 8,
+    "planted": 8,
     "falseAlarms": 0,
     "harmless": 3,
     "errors": 0
@@ -14,9 +14,11 @@
       "planted": "nothing (records the clean baseline)",
       "expected": "PASS",
       "failed": [],
+      "attributed": true,
+      "generated": false,
       "outcome": "correctly passed",
       "video": "videos/K-clean.webm",
-      "verdict": "PASS: all 6 invariants hold"
+      "verdict": "PASS: all 7 invariants hold"
     },
     {
       "id": "m1-badge-always-connected",
@@ -26,6 +28,8 @@
       "failed": [
         "K5"
       ],
+      "attributed": true,
+      "generated": false,
       "outcome": "caught",
       "video": "videos/K-m1-badge-always-connected.webm",
       "verdict": "BUG: caught by K5"
@@ -38,6 +42,8 @@
       "failed": [
         "K4"
       ],
+      "attributed": true,
+      "generated": false,
       "outcome": "caught",
       "video": "videos/K-m2-online-shown-offline.webm",
       "verdict": "BUG: caught by K4"
@@ -50,6 +56,8 @@
       "failed": [
         "K2"
       ],
+      "attributed": true,
+      "generated": false,
       "outcome": "caught",
       "video": "videos/K-m3-battery-off-by-10.webm",
       "verdict": "BUG: caught by K2"
@@ -63,6 +71,8 @@
         "K2",
         "K3"
       ],
+      "attributed": true,
+      "generated": false,
       "outcome": "caught",
       "video": "videos/K-m4-wrong-drone-telemetry.webm",
       "verdict": "BUG: caught by K2 + K3"
@@ -75,6 +85,8 @@
       "failed": [
         "K3"
       ],
+      "attributed": true,
+      "generated": false,
       "outcome": "caught",
       "video": "videos/K-m5-flying-shown-as-landed.webm",
       "verdict": "BUG: caught by K3"
@@ -88,6 +100,8 @@
         "K1",
         "K5"
       ],
+      "attributed": true,
+      "generated": false,
       "outcome": "caught",
       "video": "videos/K-m6-connection-badge-removed.webm",
       "verdict": "BUG: caught by K1 + K5"
@@ -100,9 +114,25 @@
       "failed": [
         "K6"
       ],
+      "attributed": true,
+      "generated": false,
       "outcome": "caught",
       "video": "videos/K-m7-device-list-offscreen-phone.webm",
       "verdict": "BUG: caught by K6"
+    },
+    {
+      "id": "m8-xss-drone-name",
+      "title": "Drone name rendered as raw HTML (stored XSS)",
+      "planted": "DeviceList.tsx: renders drone.name with dangerouslySetInnerHTML instead of as text",
+      "expected": "K7",
+      "failed": [
+        "K7"
+      ],
+      "attributed": true,
+      "generated": false,
+      "outcome": "caught",
+      "video": "videos/K-m8-xss-drone-name.webm",
+      "verdict": "BUG: caught by K7"
     },
     {
       "id": "h1-testids-renamed",
@@ -110,9 +140,11 @@
       "planted": "testids.ts: socket-status, telemetry-battery, telemetry-hspeed renamed (UI unchanged)",
       "expected": "PASS",
       "failed": [],
+      "attributed": true,
+      "generated": false,
       "outcome": "correctly passed",
       "video": "videos/K-h1-testids-renamed.webm",
-      "verdict": "PASS: all 6 invariants hold"
+      "verdict": "PASS: all 7 invariants hold"
     },
     {
       "id": "h2-wording-change",
@@ -120,9 +152,77 @@
       "planted": "\"FlytBase Cockpit\"→\"FlytBase Operations\", \"Devices\"→\"Fleet\", \"socket …\"→\"link …\", \"Dist. from home\"→\"Distance to home\"",
       "expected": "PASS",
       "failed": [],
+      "attributed": true,
+      "generated": false,
       "outcome": "correctly passed",
       "video": "videos/K-h2-wording-change.webm",
-      "verdict": "PASS: all 6 invariants hold"
+      "verdict": "PASS: all 7 invariants hold"
+    },
+    {
+      "id": "gen-01-video-live-shown-off",
+      "title": "status shown wrong",
+      "planted": "Inverts the video-enabled test so an enabled live stream is treated as disabled and the tile renders the 'Video off' placeholder with state 'off'. [components/VideoTile.tsx]",
+      "expected": "K4",
+      "failed": [],
+      "attributed": false,
+      "generated": true,
+      "outcome": "missed",
+      "video": "videos/K-gen-01-video-live-shown-off.webm",
+      "verdict": "PASS: all 7 invariants hold"
+    },
+    {
+      "id": "gen-02-hspeed-wrong-source",
+      "title": "wrong value",
+      "planted": "Wires the horizontal-speed readout to the vertical-speed field, so H-Speed no longer reflects horizontal ground speed (it duplicates V-Speed). [components/TelemetryPanel.tsx]",
+      "expected": "K2",
+      "failed": [
+        "K2"
+      ],
+      "attributed": true,
+      "generated": true,
+      "outcome": "caught",
+      "video": "videos/K-gen-02-hspeed-wrong-source.webm",
+      "verdict": "BUG: caught by K2"
+    },
+    {
+      "id": "gen-03-device-name-raw-html",
+      "title": "basic security",
+      "planted": "Renders the drone name as raw HTML instead of escaped text, injecting any markup or script contained in the name straight into the DOM. [components/DeviceList.tsx]",
+      "expected": "K7",
+      "failed": [
+        "K7"
+      ],
+      "attributed": true,
+      "generated": true,
+      "outcome": "caught",
+      "video": "videos/K-gen-03-device-name-raw-html.webm",
+      "verdict": "BUG: caught by K7"
+    },
+    {
+      "id": "gen-04-left-panel-clipped-phone",
+      "title": "control off-screen at phone width",
+      "planted": "Adds overflow:hidden to the fixed 220px-tall left panel only inside the max-width:800px media query, clipping device/telemetry content below the fold with no way to scroll to it. [styles.css]",
+      "expected": "K6",
+      "failed": [],
+      "attributed": false,
+      "generated": true,
+      "outcome": "missed",
+      "video": "videos/K-gen-04-left-panel-clipped-phone.webm",
+      "verdict": "PASS: all 7 invariants hold"
+    },
+    {
+      "id": "gen-05-video-tile-removed",
+      "title": "element removed",
+      "planted": "Removes the VideoTile from the cockpit layout so the FPV video panel is never mounted for the selected drone (import stays but is unused; noUnusedLocals is off so it still compiles). [pages/CockpitPage.tsx]",
+      "expected": "K1",
+      "failed": [
+        "K1"
+      ],
+      "attributed": true,
+      "generated": true,
+      "outcome": "caught",
+      "video": "videos/K-gen-05-video-tile-removed.webm",
+      "verdict": "BUG: caught by K1"
     }
   ]
 }

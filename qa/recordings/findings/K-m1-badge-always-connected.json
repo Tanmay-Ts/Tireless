@@ -6,7 +6,7 @@
   "rootCause": "mutant:m1-badge-always-connected",
   "section": "mutation",
   "description": "Mutation run \"m1-badge-always-connected\": SocketBadge.tsx: badge text and colour hard-coded to \"socket connected\". expected: caught by K5.",
-  "approach": "Runs the six cockpit invariants K1–K6 (see system design). Each passes on the unmodified kit; the mutant runner checks that planted bugs fail the expected invariant and harmless changes pass.",
+  "approach": "Runs the seven cockpit invariants K1–K7 (see system design). Each passes on the unmodified kit; the mutant runner checks that planted bugs fail the expected invariant and harmless changes pass.",
   "startState": "planted bug: SocketBadge.tsx: badge text and colour hard-coded to \"socket connected\" · expected: caught by K5 · faults cleared · sim reset · 1× · SIM_SEED 42",
   "steps": [
     {
@@ -42,6 +42,11 @@
       "label": "K6 Phone 390 px: controls still reachable",
       "state": "ok",
       "detail": "10 controls as reachable as in the clean build"
+    },
+    {
+      "label": "K7 Device name rendered as text, no script",
+      "state": "ok",
+      "detail": "name shown as text; no script ran"
     }
   ],
   "verdict": {
@@ -50,6 +55,15 @@
     "sub": "K5: link refused 6 s: no stale/offline cue at all"
   },
   "observations": {
+    "xss": {
+      "payload": "<img src=x onerror=\"window.__xss=(window.__xss||0)+1\"><i data-xss>XSSPROBEw1s602</i>",
+      "fired": 0,
+      "injectedImg": 0,
+      "injectedEl": 0,
+      "markerAsText": true,
+      "rawTagAsText": true,
+      "dialogs": 0
+    },
     "mutant": {
       "id": "m1-badge-always-connected",
       "planted": "SocketBadge.tsx: badge text and colour hard-coded to \"socket connected\"",
@@ -83,6 +97,11 @@
       "K6": {
         "ok": true,
         "summary": "10 controls as reachable as in the clean build",
+        "details": []
+      },
+      "K7": {
+        "ok": true,
+        "summary": "name shown as text; no script ran",
         "details": []
       }
     },
@@ -118,6 +137,10 @@
         [
           "K6 Phone 390 px: controls still reachable",
           "pass: 10 controls as reachable as in the clean build"
+        ],
+        [
+          "K7 Device name rendered as text, no script",
+          "pass: name shown as text; no script ran"
         ]
       ]
     }
@@ -177,7 +200,7 @@
         "type": "takeoff"
       },
       "status": 200,
-      "atS": 4.9
+      "atS": 4.8
     },
     {
       "method": "POST",
@@ -187,13 +210,28 @@
         "seconds": 6
       },
       "status": 200,
-      "atS": 23.5
+      "atS": 23.3
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/drones",
+      "body": {
+        "name": "<img src=x onerror=\"window.__xss=(window.__xss||0)+1\"><i data-xss>XSSPROBEw1s602</i>"
+      },
+      "status": 200,
+      "atS": 32.9
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/control/drones/drone-7",
+      "status": 200,
+      "atS": 35.7
     },
     {
       "method": "DELETE",
       "path": "/api/control/fault",
       "status": 200,
-      "atS": 45.8
+      "atS": 45.4
     }
   ],
   "evidence": {
@@ -212,6 +250,6 @@
     "seed": 42,
     "headed": true
   },
-  "startedAt": "2026-09-26T08:27:19.698Z",
-  "durationS": 45.8
+  "startedAt": "2026-09-26T10:27:13.374Z",
+  "durationS": 45.4
 }

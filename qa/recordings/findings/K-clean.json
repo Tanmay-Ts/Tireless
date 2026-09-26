@@ -6,7 +6,7 @@
   "rootCause": "mutant:clean",
   "section": "mutation",
   "description": "Mutation run \"clean\": nothing (records the clean baseline). expected: PASS (must not raise a false alarm).",
-  "approach": "Runs the six cockpit invariants K1–K6 (see system design). Each passes on the unmodified kit; the mutant runner checks that planted bugs fail the expected invariant and harmless changes pass.",
+  "approach": "Runs the seven cockpit invariants K1–K7 (see system design). Each passes on the unmodified kit; the mutant runner checks that planted bugs fail the expected invariant and harmless changes pass.",
   "startState": "unmodified kit · expected: PASS (must not raise a false alarm) · faults cleared · sim reset · 1× · SIM_SEED 42",
   "steps": [
     {
@@ -36,20 +36,34 @@
     {
       "label": "K5 Link loss shown, then recovers",
       "state": "ok",
-      "detail": "\"socket reconnecting\" after 0.0 s, cleared after 7.3 s"
+      "detail": "\"socket reconnecting\" after 0.0 s, cleared after 7.2 s"
     },
     {
       "label": "K6 Phone 390 px: controls still reachable",
       "state": "ok",
       "detail": "10 controls as reachable as in the clean build"
+    },
+    {
+      "label": "K7 Device name rendered as text, no script",
+      "state": "ok",
+      "detail": "name shown as text; no script ran"
     }
   ],
   "verdict": {
     "kind": "PASS",
-    "headline": "all 6 invariants hold",
+    "headline": "all 7 invariants hold",
     "sub": "Clean baseline recorded for K1/K6."
   },
   "observations": {
+    "xss": {
+      "payload": "<img src=x onerror=\"window.__xss=(window.__xss||0)+1\"><i data-xss>XSSPROBEk3qpma</i>",
+      "fired": 0,
+      "injectedImg": 0,
+      "injectedEl": 0,
+      "markerAsText": true,
+      "rawTagAsText": true,
+      "dialogs": 0
+    },
     "mutant": {
       "id": "clean",
       "planted": "nothing (records the clean baseline)",
@@ -76,11 +90,16 @@
       },
       "K5": {
         "ok": true,
-        "summary": "\"socket reconnecting\" after 0.0 s, cleared after 7.3 s"
+        "summary": "\"socket reconnecting\" after 0.0 s, cleared after 7.2 s"
       },
       "K6": {
         "ok": true,
         "summary": "10 controls as reachable as in the clean build",
+        "details": []
+      },
+      "K7": {
+        "ok": true,
+        "summary": "name shown as text; no script ran",
         "details": []
       }
     },
@@ -109,11 +128,15 @@
         ],
         [
           "K5 Link loss shown, then recovers",
-          "pass: \"socket reconnecting\" after 0.0 s, cleared after 7.3 s"
+          "pass: \"socket reconnecting\" after 0.0 s, cleared after 7.2 s"
         ],
         [
           "K6 Phone 390 px: controls still reachable",
           "pass: 10 controls as reachable as in the clean build"
+        ],
+        [
+          "K7 Device name rendered as text, no script",
+          "pass: name shown as text; no script ran"
         ]
       ]
     }
@@ -153,7 +176,7 @@
         "action": "reset"
       },
       "status": 200,
-      "atS": 0.2
+      "atS": 0.1
     },
     {
       "method": "POST",
@@ -163,7 +186,7 @@
         "speed": 1
       },
       "status": 200,
-      "atS": 0.2
+      "atS": 0.1
     },
     {
       "method": "POST",
@@ -173,7 +196,7 @@
         "type": "takeoff"
       },
       "status": 200,
-      "atS": 5.2
+      "atS": 4.8
     },
     {
       "method": "POST",
@@ -183,13 +206,28 @@
         "seconds": 6
       },
       "status": 200,
-      "atS": 24.2
+      "atS": 23.7
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/drones",
+      "body": {
+        "name": "<img src=x onerror=\"window.__xss=(window.__xss||0)+1\"><i data-xss>XSSPROBEk3qpma</i>"
+      },
+      "status": 200,
+      "atS": 34.5
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/control/drones/drone-6",
+      "status": 200,
+      "atS": 37.1
     },
     {
       "method": "DELETE",
       "path": "/api/control/fault",
       "status": 200,
-      "atS": 45.1
+      "atS": 46.6
     }
   ],
   "evidence": {
@@ -208,6 +246,6 @@
     "seed": 42,
     "headed": true
   },
-  "startedAt": "2026-09-26T08:26:29.608Z",
-  "durationS": 45.1
+  "startedAt": "2026-09-26T10:26:21.872Z",
+  "durationS": 46.6
 }

@@ -6,7 +6,7 @@
   "rootCause": "mutant:m7-device-list-offscreen-phone",
   "section": "mutation",
   "description": "Mutation run \"m7-device-list-offscreen-phone\": styles.css (< 800 px): side panel translateX(-110vw). expected: caught by K6.",
-  "approach": "Runs the six cockpit invariants K1–K6 (see system design). Each passes on the unmodified kit; the mutant runner checks that planted bugs fail the expected invariant and harmless changes pass.",
+  "approach": "Runs the seven cockpit invariants K1–K7 (see system design). Each passes on the unmodified kit; the mutant runner checks that planted bugs fail the expected invariant and harmless changes pass.",
   "startState": "planted bug: styles.css (< 800 px): side panel translateX(-110vw) · expected: caught by K6 · faults cleared · sim reset · 1× · SIM_SEED 42",
   "steps": [
     {
@@ -36,12 +36,17 @@
     {
       "label": "K5 Link loss shown, then recovers",
       "state": "ok",
-      "detail": "\"socket reconnecting\" after 0.0 s, cleared after 7.2 s"
+      "detail": "\"socket reconnecting\" after 0.0 s, cleared after 7.1 s"
     },
     {
       "label": "K6 Phone 390 px: controls still reachable",
       "state": "fail",
       "detail": "Drone 1 Dock 1 dock open in_flight: outside the viewport; after scrolling: still not visible (+3)"
+    },
+    {
+      "label": "K7 Device name rendered as text, no script",
+      "state": "ok",
+      "detail": "name shown as text; no script ran"
     }
   ],
   "verdict": {
@@ -50,6 +55,15 @@
     "sub": "K6: Drone 1 Dock 1 dock open in_flight: outside the viewport; after scrolling: still not visible (+3)"
   },
   "observations": {
+    "xss": {
+      "payload": "<img src=x onerror=\"window.__xss=(window.__xss||0)+1\"><i data-xss>XSSPROBEtrj5ot</i>",
+      "fired": 0,
+      "injectedImg": 0,
+      "injectedEl": 0,
+      "markerAsText": true,
+      "rawTagAsText": true,
+      "dialogs": 0
+    },
     "mutant": {
       "id": "m7-device-list-offscreen-phone",
       "planted": "styles.css (< 800 px): side panel translateX(-110vw)",
@@ -78,7 +92,7 @@
       },
       "K5": {
         "ok": true,
-        "summary": "\"socket reconnecting\" after 0.0 s, cleared after 7.2 s"
+        "summary": "\"socket reconnecting\" after 0.0 s, cleared after 7.1 s"
       },
       "K6": {
         "ok": false,
@@ -89,6 +103,11 @@
           "Drone 3 Dock 3 dock closed standby: outside the viewport; after scrolling: still not visible",
           "Drone 4 Dock 4 dock closed standby: outside the viewport; after scrolling: still not visible"
         ]
+      },
+      "K7": {
+        "ok": true,
+        "summary": "name shown as text; no script ran",
+        "details": []
       }
     },
     "failed": [
@@ -118,11 +137,15 @@
         ],
         [
           "K5 Link loss shown, then recovers",
-          "pass: \"socket reconnecting\" after 0.0 s, cleared after 7.2 s"
+          "pass: \"socket reconnecting\" after 0.0 s, cleared after 7.1 s"
         ],
         [
           "K6 Phone 390 px: controls still reachable",
           "FAIL: Drone 1 Dock 1 dock open in_flight: outside the viewport; after scrolling: still not visible (+3)"
+        ],
+        [
+          "K7 Device name rendered as text, no script",
+          "pass: name shown as text; no script ran"
         ]
       ]
     }
@@ -182,7 +205,7 @@
         "type": "takeoff"
       },
       "status": 200,
-      "atS": 4.9
+      "atS": 4.7
     },
     {
       "method": "POST",
@@ -192,13 +215,28 @@
         "seconds": 6
       },
       "status": 200,
-      "atS": 23.4
+      "atS": 23.3
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/drones",
+      "body": {
+        "name": "<img src=x onerror=\"window.__xss=(window.__xss||0)+1\"><i data-xss>XSSPROBEtrj5ot</i>"
+      },
+      "status": 200,
+      "atS": 33.8
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/control/drones/drone-13",
+      "status": 200,
+      "atS": 38.7
     },
     {
       "method": "DELETE",
       "path": "/api/control/fault",
       "status": 200,
-      "atS": 43.5
+      "atS": 49
     }
   ],
   "evidence": {
@@ -217,6 +255,6 @@
     "seed": 42,
     "headed": true
   },
-  "startedAt": "2026-09-26T08:32:41.208Z",
-  "durationS": 43.5
+  "startedAt": "2026-09-26T10:32:37.953Z",
+  "durationS": 49
 }

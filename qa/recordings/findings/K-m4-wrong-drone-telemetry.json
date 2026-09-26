@@ -6,7 +6,7 @@
   "rootCause": "mutant:m4-wrong-drone-telemetry",
   "section": "mutation",
   "description": "Mutation run \"m4-wrong-drone-telemetry\": TelemetryPanel.tsx: reads data of drone N+1 for selected drone N. expected: caught by K2 + K3.",
-  "approach": "Runs the six cockpit invariants K1–K6 (see system design). Each passes on the unmodified kit; the mutant runner checks that planted bugs fail the expected invariant and harmless changes pass.",
+  "approach": "Runs the seven cockpit invariants K1–K7 (see system design). Each passes on the unmodified kit; the mutant runner checks that planted bugs fail the expected invariant and harmless changes pass.",
   "startState": "planted bug: TelemetryPanel.tsx: reads data of drone N+1 for selected drone N · expected: caught by K2 + K3 · faults cleared · sim reset · 1× · SIM_SEED 42",
   "steps": [
     {
@@ -21,7 +21,7 @@
     {
       "label": "K2 Values match the backend",
       "state": "fail",
-      "detail": "Altitude RLT 0.0 m vs 30.0 · H-Speed 0.0 m/s vs 10.0 · Dist. from home 0 m vs 65.0 · Heading 134 ° vs 47.0"
+      "detail": "Altitude RLT 0.0 m vs 30.0 · H-Speed 0.0 m/s vs 10.0 · Dist. from home 0 m vs 55.0 · Heading 134 ° vs 47.0"
     },
     {
       "label": "K3 Flight status agrees across panels",
@@ -36,20 +36,34 @@
     {
       "label": "K5 Link loss shown, then recovers",
       "state": "ok",
-      "detail": "\"socket reconnecting\" after 0.0 s, cleared after 7.4 s"
+      "detail": "\"socket reconnecting\" after 0.0 s, cleared after 7.3 s"
     },
     {
       "label": "K6 Phone 390 px: controls still reachable",
       "state": "ok",
       "detail": "10 controls as reachable as in the clean build"
+    },
+    {
+      "label": "K7 Device name rendered as text, no script",
+      "state": "ok",
+      "detail": "name shown as text; no script ran"
     }
   ],
   "verdict": {
     "kind": "BUG",
     "headline": "caught by K2 + K3",
-    "sub": "K2: Altitude RLT 0.0 m vs 30.0 · H-Speed 0.0 m/s vs 10.0 · Dist. from home 0 m vs 65.0 · Heading 134 ° vs 47.0 | K3: device list airborne / status pill grounded / backend airborne"
+    "sub": "K2: Altitude RLT 0.0 m vs 30.0 · H-Speed 0.0 m/s vs 10.0 · Dist. from home 0 m vs 55.0 · Heading 134 ° vs 47.0 | K3: device list airborne / status pill grounded / backend airborne"
   },
   "observations": {
+    "xss": {
+      "payload": "<img src=x onerror=\"window.__xss=(window.__xss||0)+1\"><i data-xss>XSSPROBEfexkev</i>",
+      "fired": 0,
+      "injectedImg": 0,
+      "injectedEl": 0,
+      "markerAsText": true,
+      "rawTagAsText": true,
+      "dialogs": 0
+    },
     "mutant": {
       "id": "m4-wrong-drone-telemetry",
       "planted": "TelemetryPanel.tsx: reads data of drone N+1 for selected drone N",
@@ -66,11 +80,11 @@
       },
       "K2": {
         "ok": false,
-        "summary": "Altitude RLT 0.0 m vs 30.0 · H-Speed 0.0 m/s vs 10.0 · Dist. from home 0 m vs 65.0 · Heading 134 ° vs 47.0",
+        "summary": "Altitude RLT 0.0 m vs 30.0 · H-Speed 0.0 m/s vs 10.0 · Dist. from home 0 m vs 55.0 · Heading 134 ° vs 47.0",
         "details": [
           "Altitude RLT: UI 0.0 m vs 30.0 (backend)",
           "H-Speed: UI 0.0 m/s vs 10.0 (backend)",
-          "Dist. from home: UI 0 m vs 65.0 (backend)",
+          "Dist. from home: UI 0 m vs 55.0 (backend)",
           "Heading: UI 134 ° vs 47.0 (backend)"
         ]
       },
@@ -84,11 +98,16 @@
       },
       "K5": {
         "ok": true,
-        "summary": "\"socket reconnecting\" after 0.0 s, cleared after 7.4 s"
+        "summary": "\"socket reconnecting\" after 0.0 s, cleared after 7.3 s"
       },
       "K6": {
         "ok": true,
         "summary": "10 controls as reachable as in the clean build",
+        "details": []
+      },
+      "K7": {
+        "ok": true,
+        "summary": "name shown as text; no script ran",
         "details": []
       }
     },
@@ -108,7 +127,7 @@
         ],
         [
           "K2 Values match the backend",
-          "FAIL: Altitude RLT 0.0 m vs 30.0 · H-Speed 0.0 m/s vs 10.0 · Dist. from home 0 m vs 65.0 · Heading 134 ° vs 47.0"
+          "FAIL: Altitude RLT 0.0 m vs 30.0 · H-Speed 0.0 m/s vs 10.0 · Dist. from home 0 m vs 55.0 · Heading 134 ° vs 47.0"
         ],
         [
           "K3 Flight status agrees across panels",
@@ -120,11 +139,15 @@
         ],
         [
           "K5 Link loss shown, then recovers",
-          "pass: \"socket reconnecting\" after 0.0 s, cleared after 7.4 s"
+          "pass: \"socket reconnecting\" after 0.0 s, cleared after 7.3 s"
         ],
         [
           "K6 Phone 390 px: controls still reachable",
           "pass: 10 controls as reachable as in the clean build"
+        ],
+        [
+          "K7 Device name rendered as text, no script",
+          "pass: name shown as text; no script ran"
         ]
       ]
     }
@@ -184,7 +207,7 @@
         "type": "takeoff"
       },
       "status": 200,
-      "atS": 5.4
+      "atS": 4.7
     },
     {
       "method": "POST",
@@ -194,13 +217,28 @@
         "seconds": 6
       },
       "status": 200,
-      "atS": 25.5
+      "atS": 23.9
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/drones",
+      "body": {
+        "name": "<img src=x onerror=\"window.__xss=(window.__xss||0)+1\"><i data-xss>XSSPROBEfexkev</i>"
+      },
+      "status": 200,
+      "atS": 42.4
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/control/drones/drone-10",
+      "status": 200,
+      "atS": 45.5
     },
     {
       "method": "DELETE",
       "path": "/api/control/fault",
       "status": 200,
-      "atS": 59.6
+      "atS": 58.3
     }
   ],
   "evidence": {
@@ -219,6 +257,6 @@
     "seed": 42,
     "headed": true
   },
-  "startedAt": "2026-09-26T08:29:54.076Z",
-  "durationS": 59.6
+  "startedAt": "2026-09-26T10:29:50.361Z",
+  "durationS": 58.3
 }

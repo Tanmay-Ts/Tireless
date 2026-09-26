@@ -1,0 +1,257 @@
+{
+  "id": "K-gen-02-hspeed-wrong-source",
+  "title": "Planted: wrong value",
+  "category": "Mutation testing · Regression net",
+  "brief": "makes clear whether information is live, delayed, stale, disconnected or unavailable",
+  "rootCause": "mutant:gen-02-hspeed-wrong-source",
+  "section": "mutation",
+  "description": "Mutation run \"gen-02-hspeed-wrong-source\": Wires the horizontal-speed readout to the vertical-speed field, so H-Speed no longer reflects horizontal ground speed (it duplicates V-Speed). [components/TelemetryPanel.tsx]. expected: caught by K2.",
+  "approach": "Runs the seven cockpit invariants K1–K7 (see system design). Each passes on the unmodified kit; the mutant runner checks that planted bugs fail the expected invariant and harmless changes pass.",
+  "startState": "planted bug: Wires the horizontal-speed readout to the vertical-speed field, so H-Speed no longer reflects horizontal ground speed (it duplicates V-Speed). [components/TelemetryPanel.tsx] · expected: caught by K2 · faults cleared · sim reset · 1× · SIM_SEED 42",
+  "steps": [
+    {
+      "label": "Clean start, select + take off Drone 1",
+      "state": "ok"
+    },
+    {
+      "label": "K1 Presence: everything the clean build shows",
+      "state": "ok",
+      "detail": "19 items present"
+    },
+    {
+      "label": "K2 Values match the backend",
+      "state": "fail",
+      "detail": "H-Speed 0.0 m/s vs 10.0"
+    },
+    {
+      "label": "K3 Flight status agrees across panels",
+      "state": "ok",
+      "detail": "list, pill and backend agree"
+    },
+    {
+      "label": "K4 Live data not shown as offline",
+      "state": "ok",
+      "detail": "no stale/offline cue while live"
+    },
+    {
+      "label": "K5 Link loss shown, then recovers",
+      "state": "ok",
+      "detail": "\"socket reconnecting\" after 0.0 s, cleared after 7.2 s"
+    },
+    {
+      "label": "K6 Phone 390 px: controls still reachable",
+      "state": "ok",
+      "detail": "10 controls as reachable as in the clean build"
+    },
+    {
+      "label": "K7 Device name rendered as text, no script",
+      "state": "ok",
+      "detail": "name shown as text; no script ran"
+    }
+  ],
+  "verdict": {
+    "kind": "BUG",
+    "headline": "caught by K2",
+    "sub": "K2: H-Speed 0.0 m/s vs 10.0"
+  },
+  "observations": {
+    "xss": {
+      "payload": "<img src=x onerror=\"window.__xss=(window.__xss||0)+1\"><i data-xss>XSSPROBEe8a1z7</i>",
+      "fired": 0,
+      "injectedImg": 0,
+      "injectedEl": 0,
+      "markerAsText": true,
+      "rawTagAsText": true,
+      "dialogs": 0
+    },
+    "mutant": {
+      "id": "gen-02-hspeed-wrong-source",
+      "planted": "Wires the horizontal-speed readout to the vertical-speed field, so H-Speed no longer reflects horizontal ground speed (it duplicates V-Speed). [components/TelemetryPanel.tsx]",
+      "expect": [
+        "K2"
+      ]
+    },
+    "checks": {
+      "K1": {
+        "ok": true,
+        "summary": "19 items present",
+        "details": []
+      },
+      "K2": {
+        "ok": false,
+        "summary": "H-Speed 0.0 m/s vs 10.0",
+        "details": [
+          "H-Speed: UI 0.0 m/s vs 10.0 (backend)"
+        ]
+      },
+      "K3": {
+        "ok": true,
+        "summary": "list, pill and backend agree"
+      },
+      "K4": {
+        "ok": true,
+        "summary": "no stale/offline cue while live"
+      },
+      "K5": {
+        "ok": true,
+        "summary": "\"socket reconnecting\" after 0.0 s, cleared after 7.2 s"
+      },
+      "K6": {
+        "ok": true,
+        "summary": "10 controls as reachable as in the clean build",
+        "details": []
+      },
+      "K7": {
+        "ok": true,
+        "summary": "name shown as text; no script ran",
+        "details": []
+      }
+    },
+    "failed": [
+      "K2"
+    ],
+    "table": {
+      "columns": [
+        "check",
+        "result"
+      ],
+      "rows": [
+        [
+          "K1 Presence: everything the clean build shows",
+          "pass: 19 items present"
+        ],
+        [
+          "K2 Values match the backend",
+          "FAIL: H-Speed 0.0 m/s vs 10.0"
+        ],
+        [
+          "K3 Flight status agrees across panels",
+          "pass: list, pill and backend agree"
+        ],
+        [
+          "K4 Live data not shown as offline",
+          "pass: no stale/offline cue while live"
+        ],
+        [
+          "K5 Link loss shown, then recovers",
+          "pass: \"socket reconnecting\" after 0.0 s, cleared after 7.2 s"
+        ],
+        [
+          "K6 Phone 390 px: controls still reachable",
+          "pass: 10 controls as reachable as in the clean build"
+        ],
+        [
+          "K7 Device name rendered as text, no script",
+          "pass: name shown as text; no script ran"
+        ]
+      ]
+    }
+  },
+  "locators": {
+    "device row Drone 1": "testid",
+    "socket badge": "testid",
+    "flight status pill": "testid",
+    "Battery": "testid",
+    "Altitude RLT": "testid",
+    "Altitude AGL": "testid",
+    "Altitude ASL": "testid",
+    "H-Speed": "testid",
+    "V-Speed": "testid",
+    "Heading": "testid",
+    "Wind": "testid",
+    "Dist. from home": "testid",
+    "map": "testid",
+    "video tile": "testid",
+    "2D toggle": "testid",
+    "3D toggle": "testid",
+    "device row Drone 2": "testid",
+    "device row Drone 3": "testid",
+    "device row Drone 4": "testid"
+  },
+  "apiCalls": [
+    {
+      "method": "DELETE",
+      "path": "/api/control/fault",
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/sim",
+      "body": {
+        "action": "reset"
+      },
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/sim",
+      "body": {
+        "action": "start",
+        "speed": 1
+      },
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/command",
+      "body": {
+        "deviceId": "drone-1",
+        "type": "takeoff"
+      },
+      "status": 200,
+      "atS": 4.8
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/fault",
+      "body": {
+        "kind": "socket-refuse",
+        "seconds": 6
+      },
+      "status": 200,
+      "atS": 23.5
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/drones",
+      "body": {
+        "name": "<img src=x onerror=\"window.__xss=(window.__xss||0)+1\"><i data-xss>XSSPROBEe8a1z7</i>"
+      },
+      "status": 200,
+      "atS": 35.1
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/control/drones/drone-22",
+      "status": 200,
+      "atS": 39.2
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/control/fault",
+      "status": 200,
+      "atS": 49.7
+    }
+  ],
+  "evidence": {
+    "video": "videos/K-gen-02-hspeed-wrong-source.webm",
+    "trace": "traces/K-gen-02-hspeed-wrong-source.zip",
+    "screenshot": "shots/K-gen-02-hspeed-wrong-source-verdict.png"
+  },
+  "env": {
+    "cockpitUrl": "http://localhost:5173",
+    "apiUrl": "http://localhost:4000",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "speed": 1,
+    "seed": 42,
+    "headed": true
+  },
+  "startedAt": "2026-09-26T10:41:35.604Z",
+  "durationS": 49.7
+}

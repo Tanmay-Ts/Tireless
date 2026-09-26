@@ -6,7 +6,7 @@
   "rootCause": "mutant:h2-wording-change",
   "section": "mutation",
   "description": "Mutation run \"h2-wording-change\": \"FlytBase Cockpit\"→\"FlytBase Operations\", \"Devices\"→\"Fleet\", \"socket …\"→\"link …\", \"Dist. from home\"→\"Distance to home\". expected: PASS (must not raise a false alarm).",
-  "approach": "Runs the six cockpit invariants K1–K6 (see system design). Each passes on the unmodified kit; the mutant runner checks that planted bugs fail the expected invariant and harmless changes pass.",
+  "approach": "Runs the seven cockpit invariants K1–K7 (see system design). Each passes on the unmodified kit; the mutant runner checks that planted bugs fail the expected invariant and harmless changes pass.",
   "startState": "planted bug: \"FlytBase Cockpit\"→\"FlytBase Operations\", \"Devices\"→\"Fleet\", \"socket …\"→\"link …\", \"Dist. from home\"→\"Distance to home\" · expected: PASS (must not raise a false alarm) · faults cleared · sim reset · 1× · SIM_SEED 42",
   "steps": [
     {
@@ -42,14 +42,28 @@
       "label": "K6 Phone 390 px: controls still reachable",
       "state": "ok",
       "detail": "10 controls as reachable as in the clean build"
+    },
+    {
+      "label": "K7 Device name rendered as text, no script",
+      "state": "ok",
+      "detail": "name shown as text; no script ran"
     }
   ],
   "verdict": {
     "kind": "PASS",
-    "headline": "all 6 invariants hold",
+    "headline": "all 7 invariants hold",
     "sub": "Harmless change: no false alarm."
   },
   "observations": {
+    "xss": {
+      "payload": "<img src=x onerror=\"window.__xss=(window.__xss||0)+1\"><i data-xss>XSSPROBElw6orf</i>",
+      "fired": 0,
+      "injectedImg": 0,
+      "injectedEl": 0,
+      "markerAsText": true,
+      "rawTagAsText": true,
+      "dialogs": 0
+    },
     "mutant": {
       "id": "h2-wording-change",
       "planted": "\"FlytBase Cockpit\"→\"FlytBase Operations\", \"Devices\"→\"Fleet\", \"socket …\"→\"link …\", \"Dist. from home\"→\"Distance to home\"",
@@ -81,6 +95,11 @@
       "K6": {
         "ok": true,
         "summary": "10 controls as reachable as in the clean build",
+        "details": []
+      },
+      "K7": {
+        "ok": true,
+        "summary": "name shown as text; no script ran",
         "details": []
       }
     },
@@ -114,6 +133,10 @@
         [
           "K6 Phone 390 px: controls still reachable",
           "pass: 10 controls as reachable as in the clean build"
+        ],
+        [
+          "K7 Device name rendered as text, no script",
+          "pass: name shown as text; no script ran"
         ]
       ]
     }
@@ -173,7 +196,7 @@
         "type": "takeoff"
       },
       "status": 200,
-      "atS": 5.1
+      "atS": 4.8
     },
     {
       "method": "POST",
@@ -183,13 +206,28 @@
         "seconds": 6
       },
       "status": 200,
-      "atS": 24.2
+      "atS": 23.6
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/drones",
+      "body": {
+        "name": "<img src=x onerror=\"window.__xss=(window.__xss||0)+1\"><i data-xss>XSSPROBElw6orf</i>"
+      },
+      "status": 200,
+      "atS": 34.1
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/control/drones/drone-16",
+      "status": 200,
+      "atS": 37.2
     },
     {
       "method": "DELETE",
       "path": "/api/control/fault",
       "status": 200,
-      "atS": 45.4
+      "atS": 47.4
     }
   ],
   "evidence": {
@@ -208,6 +246,6 @@
     "seed": 42,
     "headed": true
   },
-  "startedAt": "2026-09-26T08:34:19.400Z",
-  "durationS": 45.4
+  "startedAt": "2026-09-26T10:35:20.093Z",
+  "durationS": 47.4
 }

@@ -4,6 +4,7 @@
   "category": "Live data · Network/recovery · Freshness",
   "brief": "makes clear whether information is live, delayed, stale, disconnected or unavailable",
   "rootCause": "freshness-not-tracked",
+  "section": "scenario",
   "description": "An operator watching a drone in flight must be able to tell when the telemetry on screen stops being live. We cut the simulator→backend link (sim-offline) while Drone 1 is in flight. The expected behaviour, per the brief, is that within a few seconds the cockpit shows the data as stale/disconnected (wording, age, greyed values, or an offline status) instead of continuing to present the last values as current.",
   "approach": "Deterministic Playwright run, zero LLM calls. Ground truth comes from the backend (/api/health simulator link), our own socket.io client (frame age for drone-1), and /api/control/state polled straight from the simulator (the drone keeps flying). While live, the harness checks the UI matches truth (battery, altitude, speed, distance, status) and records every freshness cue on screen as a baseline. After the fault and a 5 s grace (the cockpit's own heartbeat threshold), it samples the page every second and looks for any NEW cue that data is stale: stale/offline/disconnected/\"N s ago\" wording, data-state/aria/class markers, dashed-out or dimmed telemetry. Wording is matched by meaning. It also cross-checks the UI against itself (claimed speed vs unchanged distance) and against the simulator (real distance keeps growing). BUG only if every judged sample shows no cue; a precondition that fails (fault not active) is SETUP-FAILED, not a bug.",
   "startState": "faults cleared · sim reset (all drones standby at 100 %) · started 1× · SIM_SEED 42 · 1440×900 · drone-1 selected",
@@ -44,8 +45,8 @@
   ],
   "verdict": {
     "kind": "BUG",
-    "headline": "telemetry 12.5 s old, still shown as live",
-    "sub": "Simulator disconnected, no data for 12.5 s; cockpit still says \"socket connected\", \"in_flight\", 10.0 m/s, distance 65 m (real 185 m). No stale/offline cue in 8/8 samples after a 5 s grace."
+    "headline": "telemetry 12.6 s old, still shown as live",
+    "sub": "Simulator disconnected, no data for 12.6 s; cockpit still says \"socket connected\", \"in_flight\", 10.0 m/s, distance 65 m (real 185 m). No stale/offline cue in 8/8 samples after a 5 s grace."
   },
   "observations": {
     "control": {
@@ -96,16 +97,16 @@
           "homeDist": "65 m"
         },
         "truth": {
-          "stale": false,
-          "ageMs": 414,
-          "simulator": "connected",
+          "stale": true,
+          "ageMs": 556,
+          "simulator": "disconnected",
           "status": "in_flight",
           "distM": 65.00000000211492,
-          "speed": 10.016025640496013
+          "speed": 9.996001598831686
         }
       },
       {
-        "tS": 1.2,
+        "tS": 1.1,
         "judged": false,
         "fail": false,
         "newCues": [],
@@ -120,15 +121,15 @@
         },
         "truth": {
           "stale": true,
-          "ageMs": 1374,
+          "ageMs": 1537,
           "simulator": "disconnected",
           "status": "in_flight",
           "distM": 74.99999999348069,
-          "speed": 9.999999997866732
+          "speed": 9.996001597227842
         }
       },
       {
-        "tS": 2.2,
+        "tS": 2.1,
         "judged": false,
         "fail": false,
         "newCues": [],
@@ -143,7 +144,7 @@
         },
         "truth": {
           "stale": true,
-          "ageMs": 2419,
+          "ageMs": 2540,
           "simulator": "disconnected",
           "status": "in_flight",
           "distM": 84.99999999034533,
@@ -151,7 +152,7 @@
         }
       },
       {
-        "tS": 3.2,
+        "tS": 3.1,
         "judged": false,
         "fail": false,
         "newCues": [],
@@ -166,11 +167,11 @@
         },
         "truth": {
           "stale": true,
-          "ageMs": 3374,
+          "ageMs": 3530,
           "simulator": "disconnected",
           "status": "in_flight",
           "distM": 94.99999999270095,
-          "speed": 9.99600159760971
+          "speed": 9.999999998248754
         }
       },
       {
@@ -189,7 +190,7 @@
         },
         "truth": {
           "stale": true,
-          "ageMs": 4392,
+          "ageMs": 4551,
           "simulator": "disconnected",
           "status": "in_flight",
           "distM": 104.99999999231414,
@@ -197,7 +198,7 @@
         }
       },
       {
-        "tS": 5.3,
+        "tS": 5.2,
         "judged": true,
         "fail": true,
         "newCues": [],
@@ -212,7 +213,7 @@
         },
         "truth": {
           "stale": true,
-          "ageMs": 5532,
+          "ageMs": 5620,
           "simulator": "disconnected",
           "status": "in_flight",
           "distM": 114.99999998782988,
@@ -220,7 +221,7 @@
         }
       },
       {
-        "tS": 6.3,
+        "tS": 6.2,
         "judged": true,
         "fail": true,
         "newCues": [],
@@ -235,15 +236,15 @@
         },
         "truth": {
           "stale": true,
-          "ageMs": 6490,
+          "ageMs": 6600,
           "simulator": "disconnected",
           "status": "in_flight",
           "distM": 124.99999998908237,
-          "speed": 9.995002497159918
+          "speed": 9.980039918571356
         }
       },
       {
-        "tS": 7.3,
+        "tS": 7.2,
         "judged": true,
         "fail": true,
         "newCues": [],
@@ -258,15 +259,15 @@
         },
         "truth": {
           "stale": true,
-          "ageMs": 7489,
+          "ageMs": 7622,
           "simulator": "disconnected",
           "status": "in_flight",
           "distM": 134.99999999606374,
-          "speed": 9.990009994151615
+          "speed": 9.975062348275078
         }
       },
       {
-        "tS": 8.3,
+        "tS": 8.2,
         "judged": true,
         "fail": true,
         "newCues": [],
@@ -281,15 +282,15 @@
         },
         "truth": {
           "stale": true,
-          "ageMs": 8528,
+          "ageMs": 8603,
           "simulator": "disconnected",
           "status": "in_flight",
           "distM": 144.99999999069848,
-          "speed": 10.000000000841714
+          "speed": 9.990009990850865
         }
       },
       {
-        "tS": 9.3,
+        "tS": 9.2,
         "judged": true,
         "fail": true,
         "newCues": [],
@@ -304,15 +305,15 @@
         },
         "truth": {
           "stale": true,
-          "ageMs": 9478,
+          "ageMs": 9608,
           "simulator": "disconnected",
           "status": "in_flight",
           "distM": 154.9999999910463,
-          "speed": 9.975062341675963
+          "speed": 9.999999997530153
         }
       },
       {
-        "tS": 10.3,
+        "tS": 10.2,
         "judged": true,
         "fail": true,
         "newCues": [],
@@ -327,15 +328,15 @@
         },
         "truth": {
           "stale": true,
-          "ageMs": 10480,
+          "ageMs": 10615,
           "simulator": "disconnected",
           "status": "in_flight",
           "distM": 164.99999999682996,
-          "speed": 9.970089733908447
+          "speed": 10.000000003110172
         }
       },
       {
-        "tS": 11.3,
+        "tS": 11.2,
         "judged": true,
         "fail": true,
         "newCues": [],
@@ -350,15 +351,15 @@
         },
         "truth": {
           "stale": true,
-          "ageMs": 11491,
+          "ageMs": 11607,
           "simulator": "disconnected",
           "status": "in_flight",
           "distM": 174.99999999024328,
-          "speed": 9.999999999648878
+          "speed": 9.995002498399678
         }
       },
       {
-        "tS": 12.3,
+        "tS": 12.2,
         "judged": true,
         "fail": true,
         "newCues": [],
@@ -373,11 +374,11 @@
         },
         "truth": {
           "stale": true,
-          "ageMs": 12481,
+          "ageMs": 12606,
           "simulator": "disconnected",
           "status": "in_flight",
           "distM": 184.99999998907668,
-          "speed": 9.990009986193883
+          "speed": 9.999999996180076
         }
       }
     ],
@@ -387,10 +388,10 @@
     },
     "firstCueS": null,
     "motionContradiction": {
-      "span": 11.107,
+      "span": 11.069,
       "claimed": 10,
       "moved": 0,
-      "expected": 111.07,
+      "expected": 110.69000000000001,
       "contradiction": true
     },
     "table": {
@@ -407,8 +408,8 @@
       ],
       "rows": [
         [
-          "5.3 s",
-          "5.5 s ago",
+          "5.2 s",
+          "5.6 s ago",
           "disconnected",
           "socket connected",
           "in_flight",
@@ -418,8 +419,8 @@
           "none"
         ],
         [
-          "6.3 s",
-          "6.5 s ago",
+          "6.2 s",
+          "6.6 s ago",
           "disconnected",
           "socket connected",
           "in_flight",
@@ -429,8 +430,8 @@
           "none"
         ],
         [
-          "7.3 s",
-          "7.5 s ago",
+          "7.2 s",
+          "7.6 s ago",
           "disconnected",
           "socket connected",
           "in_flight",
@@ -440,8 +441,8 @@
           "none"
         ],
         [
-          "8.3 s",
-          "8.5 s ago",
+          "8.2 s",
+          "8.6 s ago",
           "disconnected",
           "socket connected",
           "in_flight",
@@ -451,8 +452,8 @@
           "none"
         ],
         [
-          "9.3 s",
-          "9.5 s ago",
+          "9.2 s",
+          "9.6 s ago",
           "disconnected",
           "socket connected",
           "in_flight",
@@ -462,8 +463,8 @@
           "none"
         ],
         [
-          "10.3 s",
-          "10.5 s ago",
+          "10.2 s",
+          "10.6 s ago",
           "disconnected",
           "socket connected",
           "in_flight",
@@ -473,8 +474,8 @@
           "none"
         ],
         [
-          "11.3 s",
-          "11.5 s ago",
+          "11.2 s",
+          "11.6 s ago",
           "disconnected",
           "socket connected",
           "in_flight",
@@ -484,8 +485,8 @@
           "none"
         ],
         [
-          "12.3 s",
-          "12.5 s ago",
+          "12.2 s",
+          "12.6 s ago",
           "disconnected",
           "socket connected",
           "in_flight",
@@ -520,7 +521,7 @@
         "action": "reset"
       },
       "status": 200,
-      "atS": 0.1
+      "atS": 0.2
     },
     {
       "method": "POST",
@@ -530,7 +531,7 @@
         "speed": 1
       },
       "status": 200,
-      "atS": 0.1
+      "atS": 0.2
     },
     {
       "method": "POST",
@@ -540,7 +541,7 @@
         "type": "takeoff"
       },
       "status": 200,
-      "atS": 5.1
+      "atS": 4.8
     },
     {
       "method": "POST",
@@ -550,13 +551,13 @@
         "seconds": 30
       },
       "status": 200,
-      "atS": 21.6
+      "atS": 21.2
     },
     {
       "method": "DELETE",
       "path": "/api/control/fault",
       "status": 200,
-      "atS": 45.9
+      "atS": 44.5
     }
   ],
   "evidence": {
@@ -575,6 +576,6 @@
     "seed": 42,
     "headed": true
   },
-  "startedAt": "2026-09-26T07:52:27.059Z",
-  "durationS": 45.9
+  "startedAt": "2026-09-26T10:17:23.681Z",
+  "durationS": 44.5
 }

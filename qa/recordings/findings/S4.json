@@ -4,6 +4,7 @@
   "category": "Responsive · Devices · Operator workflow",
   "brief": "Selecting a drone shows its state, telemetry, map location, video, warnings and freshness together",
   "rootCause": "mobile-side-panel-fixed-220px",
+  "section": "scenario",
   "description": "An operator selects a drone to see how it is doing: status, battery, altitude, speed, distance, next to the map and video. The brief says selecting a drone shows these together, and that the product works on phones. On a laptop this holds. We repeat the same action on phone-sized screens while Drone 1 is flying. Expected: after tapping the drone, its status and key telemetry (battery, altitude, speed) are visible without hunting for them.",
   "approach": "Deterministic Playwright run, zero LLM calls. The cockpit runs in a device frame (iframe with the exact device viewport, so the app's media queries apply). After the select action the harness probes the selected row, status pill, all 9 telemetry values, the map and the video: an item counts as visible only if it is inside the viewport, at least 60 % unclipped by any scroll container, and document.elementFromPoint() at its visible centre returns the item itself. Laptop first as the control (everything visible together), then iPhone SE. The operator is then allowed to scroll the side panel with the mouse wheel and visibility is measured again, to state precisely what a phone user can see at once. Repeated on iPhone 13 and Pixel 7, and re-checked in a real iPhone SE emulation context (touch, DPR 2).",
   "startState": "faults cleared · sim reset · started 1× · SIM_SEED 42 · Drone 1 taking off (live data) · cockpit in a device frame: laptop 1366×768, then iPhone SE 375×667",
@@ -144,13 +145,13 @@
         "type": "takeoff"
       },
       "status": 200,
-      "atS": 0.4
+      "atS": 0.3
     },
     {
       "method": "DELETE",
       "path": "/api/control/fault",
       "status": 200,
-      "atS": 36.9
+      "atS": 32
     }
   ],
   "evidence": {
@@ -169,6 +170,6 @@
     "seed": 42,
     "headed": true
   },
-  "startedAt": "2026-09-26T07:54:51.578Z",
-  "durationS": 36.9
+  "startedAt": "2026-09-26T10:19:40.338Z",
+  "durationS": 32
 }

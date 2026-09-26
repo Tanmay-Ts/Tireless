@@ -4,6 +4,7 @@
   "category": "Responsive · Devices · Map controls",
   "brief": "Works in modern browsers on phones, tablets, laptops and desktops",
   "rootCause": "mobile-video-tile-overlaps-map-controls",
+  "section": "scenario",
   "description": "The operator switches the map between 3D and 2D with the 2D/3D toggle at the bottom of the map. The product must work on phones, tablets, laptops and desktops. We open the cockpit at a laptop size and at six tablet/phone sizes and check that every control usable on the laptop can still be seen and pressed. Expected: the map view toggle is visible and pressable at every size.",
   "approach": "Deterministic Playwright run, zero LLM calls. The cockpit runs in a device frame (an iframe whose CSS viewport is exactly the device size, so the app's own media queries apply) next to the evidence panel. At each size the harness audits every button, link and device row: displayed, inside the viewport or reachable by scrolling, and not covered: document.elementFromPoint() at the control's visible centre must return the control itself. The laptop result is the baseline; anything usable there and unusable elsewhere is flagged, which also catches controls pushed off-screen or hidden by a mutation. The failing control is then tapped like a user (real pointer) and the effect checked through its aria-pressed state, Playwright's own actionability check is recorded, and the result is re-checked in a real iPhone SE emulation context (touch, DPR 2, mobile UA).",
   "startState": "faults cleared · sim reset · started 1× · SIM_SEED 42 · cockpit in a device frame: laptop 1366×768 → 768 → 412 → 390 → 360 → 320 → 375 px",
@@ -175,7 +176,7 @@
       "method": "DELETE",
       "path": "/api/control/fault",
       "status": 200,
-      "atS": 39.5
+      "atS": 34.9
     }
   ],
   "evidence": {
@@ -194,6 +195,6 @@
     "seed": 42,
     "headed": true
   },
-  "startedAt": "2026-09-26T07:54:11.602Z",
-  "durationS": 39.5
+  "startedAt": "2026-09-26T10:19:05.128Z",
+  "durationS": 34.9
 }
