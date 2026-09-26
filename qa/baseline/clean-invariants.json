@@ -1,0 +1,108 @@
+{
+  "recordedAt": "2026-09-26T08:27:04.954Z",
+  "laptop": [
+    {
+      "key": "a:Control panel →",
+      "label": "Control panel →",
+      "state": "ok"
+    },
+    {
+      "key": "device-row-drone-1",
+      "label": "Drone 1 Dock 1 dock open in_flight",
+      "state": "ok"
+    },
+    {
+      "key": "device-row-drone-2",
+      "label": "Drone 2 Dock 2 dock closed standby",
+      "state": "ok"
+    },
+    {
+      "key": "device-row-drone-3",
+      "label": "Drone 3 Dock 3 dock closed standby",
+      "state": "ok"
+    },
+    {
+      "key": "device-row-drone-4",
+      "label": "Drone 4 Dock 4 dock closed standby",
+      "state": "ok"
+    },
+    {
+      "key": "a:Close data attribution",
+      "label": "Close data attribution",
+      "state": "hidden"
+    },
+    {
+      "key": "a:",
+      "label": "",
+      "state": "hidden"
+    },
+    {
+      "key": "a:Data attribution",
+      "label": "Data attribution",
+      "state": "hidden"
+    },
+    {
+      "key": "map-view-2d",
+      "label": "2D",
+      "state": "ok"
+    },
+    {
+      "key": "map-view-3d",
+      "label": "3D",
+      "state": "ok"
+    }
+  ],
+  "phone": [
+    {
+      "key": "a:Control panel →",
+      "label": "Control panel →",
+      "state": "ok"
+    },
+    {
+      "key": "device-row-drone-1",
+      "label": "Drone 1 Dock 1 dock open in_flight",
+      "state": "ok"
+    },
+    {
+      "key": "device-row-drone-2",
+      "label": "Drone 2 Dock 2 dock closed standby",
+      "state": "ok"
+    },
+    {
+      "key": "device-row-drone-3",
+      "label": "Drone 3 Dock 3 dock closed standby",
+      "state": "ok"
+    },
+    {
+      "key": "device-row-drone-4",
+      "label": "Drone 4 Dock 4 dock closed standby",
+      "state": "clipped",
+      "afterScroll": "ok"
+    },
+    {
+      "key": "a:Close data attribution",
+      "label": "Close data attribution",
+      "state": "hidden"
+    },
+    {
+      "key": "a:",
+      "label": "",
+      "state": "hidden"
+    },
+    {
+      "key": "a:Data attribution",
+      "label": "Data attribution",
+      "state": "hidden"
+    },
+    {
+      "key": "map-view-2d",
+      "label": "2D",
+      "state": "covered"
+    },
+    {
+      "key": "map-view-3d",
+      "label": "3D",
+      "state": "covered"
+    }
+  ]
+}

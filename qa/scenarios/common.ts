@@ -21,9 +21,9 @@ export async function withTitleCard<T>(ctx: Ctx, fn: () => Promise<T>, ms = 4000
 }
 
 /** Clear faults, reset, start; attach the truth recorder to the drone and its dock. */
-export async function cleanStartWithTruth(ctx: Ctx, droneId = DRONE) {
+export async function cleanStartWithTruth(ctx: Ctx, droneId = DRONE, speed = cfg.speed) {
   const { driver, truth } = ctx;
-  await driver.cleanStart(cfg.speed);
+  await driver.cleanStart(speed);
   const dev = (await driver.devices()).find((d) => d.id === droneId);
   if (!dev) throw new SetupError(`${droneId} not in /api/devices`);
   await truth.connect([droneId, dev.dockId ?? 'dock-1']);

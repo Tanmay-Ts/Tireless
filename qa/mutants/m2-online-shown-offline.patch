@@ -1,0 +1,15 @@
+diff --git a/frontend/src/components/SocketBadge.tsx b/frontend/src/components/SocketBadge.tsx
+index da55166..0c8f9f1 100644
+--- a/frontend/src/components/SocketBadge.tsx
++++ b/frontend/src/components/SocketBadge.tsx
+@@ -6,8 +6,8 @@ export function SocketBadge() {
+   const [status, setStatus] = useState<SocketStatus>(socketClient.status);
+   useEffect(() => socketClient.onStatus(setStatus), []);
+   return (
+-    <span className={`badge badge-${status}`} data-testid={TESTIDS.socketStatus} title="Socket connection">
+-      socket {status}
++    <span className={`badge badge-${status === 'connected' ? 'disconnected' : status}`} data-testid={TESTIDS.socketStatus} title="Socket connection">
++      socket {status === 'connected' ? 'disconnected' : status}
+     </span>
+   );
+ }

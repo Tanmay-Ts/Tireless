@@ -29,6 +29,10 @@ export type Scenario = {
   viewport: { width: number; height: number };
   startState: string;
   steps: string[];
+  /** Where the report lists it: numbered scenario (default), precision check, or mutation run. */
+  section?: 'scenario' | 'precision' | 'mutation';
+  /** Simulator speed for this run (default cfg.speed). */
+  speed?: number;
   run(ctx: Ctx): Promise<Verdict>;
   /** Undo anything the scenario added to the kit (runs after the recording is closed). */
   cleanup?(driver: Driver): Promise<void>;
@@ -55,6 +59,7 @@ export type Finding = {
   category: string;
   brief: string;
   rootCause: string;
+  section: 'scenario' | 'precision' | 'mutation';
   description: string;
   approach: string;
   startState: string;
@@ -147,6 +152,7 @@ export async function runScenario(sc: Scenario): Promise<Finding> {
     category: sc.category,
     brief: sc.brief,
     rootCause: sc.rootCause,
+    section: sc.section ?? 'scenario',
     description: sc.description,
     approach: sc.approach,
     startState: sc.startState,
@@ -156,7 +162,7 @@ export async function runScenario(sc: Scenario): Promise<Finding> {
     locators: via,
     apiCalls: driver.calls.map((c) => ({ method: c.method, path: c.path, body: c.body, status: c.status, atS: +((c.at - t0) / 1000).toFixed(1) })),
     evidence: Object.fromEntries(Object.entries(evidence).map(([k, v]) => [k, path.relative(cfg.outDir, v)])) as Finding['evidence'],
-    env: { cockpitUrl: cfg.cockpitUrl, apiUrl: cfg.apiUrl, viewport: sc.viewport, speed: cfg.speed, seed: cfg.seed, headed: cfg.headed },
+    env: { cockpitUrl: cfg.cockpitUrl, apiUrl: cfg.apiUrl, viewport: sc.viewport, speed: sc.speed ?? cfg.speed, seed: cfg.seed, headed: cfg.headed },
     startedAt: new Date(t0).toISOString(),
     durationS: +((Date.now() - t0) / 1000).toFixed(1),
   };

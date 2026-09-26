@@ -1,0 +1,14 @@
+diff --git a/frontend/src/components/TelemetryPanel.tsx b/frontend/src/components/TelemetryPanel.tsx
+index 55aa842..1be366d 100644
+--- a/frontend/src/components/TelemetryPanel.tsx
++++ b/frontend/src/components/TelemetryPanel.tsx
+@@ -24,7 +24,8 @@ export function TelemetryPanel() {
+   const dock = dockId ? data[dockId]?.dock : undefined;
+   const pos = drone?.global_position;
+   const wind = dock?.weather.wind;
+-  const status = drone?.flight_status?.flight_status ?? 'unknown';
++  const raw = drone?.flight_status?.flight_status;
++  const status = (raw === 'in_flight' ? 'standby' : raw) ?? 'unknown';
+ 
+   const rows: Array<{ label: string; value: string; testid: string }> = [
+     { label: 'Battery', value: fmt(drone?.battery?.percent, '%', 0), testid: TESTIDS.telemetryBattery },

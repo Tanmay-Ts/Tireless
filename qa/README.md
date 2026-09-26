@@ -28,6 +28,15 @@ npm run report                         # out/report.md + out/findings.json (also
 npx playwright show-trace out/traces/S1.zip
 ```
 
+### Recording the submission videos on a laptop
+
+1. **Start the kit in dev mode.** From the kit folder run `docker compose watch` (cockpit on :4010, source edits sync live, which the mutant runs need). Wait for `Watch enabled`, then check that `curl localhost:4000/api/health` reports `simulator: connected`. If the map is black, set `MAP_TILES=osm` in the kit's `.env`. Close the control panel tab and other heavy apps (8 GB RAM).
+2. **Set up the harness (once):** `cd qa && npm install && npx playwright install chromium && cp .env.example .env`. In `.env`, set `COCKPIT_URL` (default :4010; `http://localhost:5173` in npm mode) and `KIT_DIR` (absolute path of the kit checkout).
+3. **Record S1–S4 and P1:** `npm run record`, about 4 minutes. A headed Chromium opens; do not touch it.
+4. **Record the mutation matrix:** `npm run mutants`, about 9 minutes. It plants each bug, runs K, reverts the kit, and writes `out/mutants.json`.
+5. **Make the upload files:** `npm run video` (needs ffmpeg). This writes `out/mp4/*.mp4` (one per run) and `out/level1-all-scenarios.mp4` (all runs back to back).
+6. **Draft the write-up:** `npm run report`, then open `out/report.md`. Upload the mp4s to Drive with "Anyone with the link" access, test the links in an incognito window, and paste them over the `<paste Drive link …>` placeholders.
+
 `HEADED=0` runs headless (the video is still recorded). Each scenario resets the simulator itself, so
 nothing else needs to run between scenarios. Keep the control panel closed while recording so its
 clicks cannot interfere.
@@ -44,7 +53,11 @@ clicks cannot interfere.
 | `report.ts` | Findings → `out/report.md`: system design plus numbered scenarios (Title / Description / Approach / steps / API calls / evidence table / video placeholder), grouped by root cause. |
 | `device.ts` | Phone/tablet harness: the cockpit runs in an iframe with the exact device viewport (the app's media queries apply), shown scaled beside the HUD. `crossCheckOnDevice()` repeats a check in real Playwright device emulation (touch, DPR, mobile UA). |
 | `scenarios/` | One file per scenario. `common.ts` holds the shared operator steps (clean start, open, select, take off). |
-| `mutants/` | Patches for the kit used as controls. `control-fix-stale.patch` makes the cockpit flag stale data; S1 must then report PASS. |
+| `mutants/` | Planted bugs and harmless changes as `git diff` patches against the kit, plus `index.ts` (what each patch changes and which K check must catch it). `control-fix-stale.patch` is S1's precision control (a fixed cockpit must PASS). |
+| `mutants.ts` | Mutation runner: applies each patch to `KIT_DIR`, runs the invariant suite K (recorded), reverts, and scores it as caught / missed / false alarm. |
+| `scenarios/k-invariants.ts` | Invariant suite K1–K6. It passes on the unmodified kit and is the regression net for new bugs. K1/K6 compare against `baseline/clean-invariants.json`, which is recorded by the clean run. |
+| `scenarios/p1-land-returns-to-dock.ts` | Precision check: Land returns to the dock (the backend behaviour, from the latest kit commit) even though the README says otherwise. The result is INTENDED, not BUG. |
+| `video.ts` | Converts webm to mp4 and joins them into `level1-all-scenarios.mp4` (real time). |
 
 ## S1: stale data shown as live
 

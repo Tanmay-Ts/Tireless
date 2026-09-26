@@ -5,8 +5,9 @@ import { S1 } from './scenarios/s1-stale-data.ts';
 import { S2 } from './scenarios/s2-out-of-order.ts';
 import { S3 } from './scenarios/s3-toggle-covered.ts';
 import { S4 } from './scenarios/s4-telemetry-hidden-phone.ts';
+import { P1 } from './scenarios/p1-land-returns-to-dock.ts';
 
-const SCENARIOS: Record<string, Scenario> = { S1, S2, S3, S4 };
+const SCENARIOS: Record<string, Scenario> = { S1, S2, S3, S4, P1 };
 
 const args = process.argv.slice(2).map((a) => a.toUpperCase());
 const ids = !args.length || args.includes('ALL') ? Object.keys(SCENARIOS) : args;

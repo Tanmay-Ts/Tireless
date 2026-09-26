@@ -1,0 +1,52 @@
+diff --git a/frontend/src/components/DeviceList.tsx b/frontend/src/components/DeviceList.tsx
+index b9c9c13..c17b4d4 100644
+--- a/frontend/src/components/DeviceList.tsx
++++ b/frontend/src/components/DeviceList.tsx
+@@ -14,7 +14,7 @@ export function DeviceList() {
+ 
+   return (
+     <section className="panel">
+-      <h2>Devices</h2>
++      <h2>Fleet</h2>
+       <ul className="device-list">
+         {drones.map((drone) => {
+           const dock = drone.dockId ? docks.get(drone.dockId) : undefined;
+diff --git a/frontend/src/components/SocketBadge.tsx b/frontend/src/components/SocketBadge.tsx
+index da55166..72094c0 100644
+--- a/frontend/src/components/SocketBadge.tsx
++++ b/frontend/src/components/SocketBadge.tsx
+@@ -7,7 +7,7 @@ export function SocketBadge() {
+   useEffect(() => socketClient.onStatus(setStatus), []);
+   return (
+     <span className={`badge badge-${status}`} data-testid={TESTIDS.socketStatus} title="Socket connection">
+-      socket {status}
++      link {status}
+     </span>
+   );
+ }
+diff --git a/frontend/src/components/TelemetryPanel.tsx b/frontend/src/components/TelemetryPanel.tsx
+index 55aa842..231a601 100644
+--- a/frontend/src/components/TelemetryPanel.tsx
++++ b/frontend/src/components/TelemetryPanel.tsx
+@@ -39,7 +39,7 @@ export function TelemetryPanel() {
+       value: wind ? `${windLabel(wind.direction)} ${wind.speed.toFixed(1)} m/s` : '—',
+       testid: TESTIDS.telemetryWind,
+     },
+-    { label: 'Dist. from home', value: fmt(pos?.home_position.distance, 'm', 0), testid: TESTIDS.telemetryHomeDistance },
++    { label: 'Distance to home', value: fmt(pos?.home_position.distance, 'm', 0), testid: TESTIDS.telemetryHomeDistance },
+   ];
+ 
+   return (
+diff --git a/frontend/src/pages/CockpitPage.tsx b/frontend/src/pages/CockpitPage.tsx
+index f954872..a7d613e 100644
+--- a/frontend/src/pages/CockpitPage.tsx
++++ b/frontend/src/pages/CockpitPage.tsx
+@@ -39,7 +39,7 @@ export function CockpitPage() {
+   return (
+     <div className="cockpit">
+       <header className="cockpit-top">
+-        <div className="brand">FlytBase Cockpit</div>
++        <div className="brand">FlytBase Operations</div>
+         <div className="top-right">
+           <SocketBadge />
+           <a className="dashboard-link" href={`${config.apiUrl}/dashboard`} target="_blank" rel="noreferrer">

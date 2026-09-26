@@ -1,0 +1,13 @@
+diff --git a/frontend/src/components/TelemetryPanel.tsx b/frontend/src/components/TelemetryPanel.tsx
+index 55aa842..09935fa 100644
+--- a/frontend/src/components/TelemetryPanel.tsx
++++ b/frontend/src/components/TelemetryPanel.tsx
+@@ -20,7 +20,7 @@ export function TelemetryPanel() {
+   const device = devices.find((d) => d.id === selected);
+   const droneId = device?.type === 'drone' ? device.id : device?.droneId;
+   const dockId = device?.type === 'dock' ? device.id : device?.dockId;
+-  const drone = droneId ? data[droneId] : undefined;
++  const drone = droneId ? data[droneId.replace(/\d+$/, (n) => String(Number(n) + 1))] : undefined;
+   const dock = dockId ? data[dockId]?.dock : undefined;
+   const pos = drone?.global_position;
+   const wind = dock?.weather.wind;

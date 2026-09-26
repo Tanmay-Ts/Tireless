@@ -1,0 +1,13 @@
+diff --git a/frontend/src/styles.css b/frontend/src/styles.css
+index b288d5b..2abc61e 100644
+--- a/frontend/src/styles.css
++++ b/frontend/src/styles.css
+@@ -152,7 +152,7 @@ h2 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacin
+ 
+ @media (max-width: 800px) {
+   .cockpit { grid-template-columns: 1fr; grid-template-rows: 48px 220px 1fr; grid-template-areas: 'top' 'left' 'map'; }
+-  .cockpit-left { border-right: none; border-bottom: 1px solid var(--outline-primary); }
++  .cockpit-left { border-right: none; border-bottom: 1px solid var(--outline-primary); transform: translateX(-110vw); }
+   .video-tile { width: 200px; }
+ }
+ .video-state-reconnecting { color: var(--caution-30); }

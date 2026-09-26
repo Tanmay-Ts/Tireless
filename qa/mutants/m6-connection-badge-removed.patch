@@ -1,0 +1,12 @@
+diff --git a/frontend/src/pages/CockpitPage.tsx b/frontend/src/pages/CockpitPage.tsx
+index f954872..2704454 100644
+--- a/frontend/src/pages/CockpitPage.tsx
++++ b/frontend/src/pages/CockpitPage.tsx
+@@ -41,7 +41,6 @@ export function CockpitPage() {
+       <header className="cockpit-top">
+         <div className="brand">FlytBase Cockpit</div>
+         <div className="top-right">
+-          <SocketBadge />
+           <a className="dashboard-link" href={`${config.apiUrl}/dashboard`} target="_blank" rel="noreferrer">
+             Control panel →
+           </a>

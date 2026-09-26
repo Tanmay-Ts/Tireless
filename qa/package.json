@@ -11,7 +11,11 @@
     "typecheck": "tsc --noEmit",
     "s2": "tsx run.ts S2",
     "s3": "tsx run.ts S3",
-    "s4": "tsx run.ts S4"
+    "s4": "tsx run.ts S4",
+    "p1": "tsx run.ts P1",
+    "mutants": "tsx mutants.ts",
+    "video": "tsx video.ts",
+    "record": "tsx run.ts S1 S2 S3 S4 P1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

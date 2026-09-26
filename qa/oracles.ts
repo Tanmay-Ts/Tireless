@@ -332,6 +332,25 @@ export function auditFailures(now: AuditRow[], baseline: AuditRow[]) {
     .filter((x): x is { key: string; label: string; reason: string } => x !== null);
 }
 
+const reachableRow = (r: Pick<AuditRow, 'state' | 'afterScroll'>) => r.state === 'ok' || ((r.state === 'clipped' || r.state === 'offscreen') && r.afterScroll === 'ok');
+
+/**
+ * Semantic diff against a known-good build: every control that was reachable in the clean build (at the same
+ * screen size) must still exist and be reachable. Known issues of the clean build are part of the baseline, so
+ * only NEW breakage is reported; this is what catches mutations nobody wrote a specific check for.
+ */
+export function auditRegressions(now: AuditRow[], cleanBaseline: Pick<AuditRow, 'key' | 'label' | 'state' | 'afterScroll'>[]) {
+  const byKey = new Map(now.map((r) => [r.key, r]));
+  return cleanBaseline
+    .filter(reachableRow)
+    .map((b) => {
+      const r = byKey.get(b.key);
+      if (!r) return { key: b.key, label: b.label, reason: 'missing (present in clean build)' };
+      return reachableRow(r) ? null : { key: r.key, label: r.label, reason: probeReason(r) ?? r.state };
+    })
+    .filter((x): x is { key: string; label: string; reason: string } => x !== null);
+}
+
 // ---------------------------------------------------------------------------------------------
 // Time series of what the UI displayed: a MutationObserver records every text change of an element
 // with its wall-clock time (same clock as the truth recorder), so no update between samples is missed.
