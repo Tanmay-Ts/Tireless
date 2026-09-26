@@ -1,0 +1,23 @@
+{
+  "file": "level1-all-scenarios.mp4",
+  "lengthS": 785.3,
+  "clips": {
+    "K-gen-02-hspeed-wrong-source.mp4": 0.0,
+    "K-gen-03-device-name-raw-html.mp4": 49.8,
+    "K-gen-05-video-tile-removed.mp4": 95.4,
+    "K-m1-badge-always-connected.mp4": 141.6,
+    "K-m2-online-shown-offline.mp4": 187.0,
+    "K-m3-battery-off-by-10.mp4": 234.9,
+    "K-m4-wrong-drone-telemetry.mp4": 284.4,
+    "K-m5-flying-shown-as-landed.mp4": 343.2,
+    "K-m6-connection-badge-removed.mp4": 392.0,
+    "K-m7-device-list-offscreen-phone.mp4": 438.8,
+    "S1.mp4": 488.4,
+    "S2.mp4": 533.1,
+    "S3.mp4": 588.2,
+    "S4.mp4": 623.4,
+    "P1.mp4": 655.2,
+    "S1-fixed.mp4": 694.2,
+    "K-clean.mp4": 738.6
+  }
+}

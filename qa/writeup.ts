@@ -318,16 +318,38 @@ The suite must not raise false alarms. Each control below was run with a recordi
 - **Scenario ${numbered.find((e) => e.id === 'S1')?.n ?? 'S1'} on a fixed cockpit.** The stale-data scenario re-run against a cockpit patched to flag stale data (\`qa/mutants/control-fix-stale.patch\`): ${findings.get('S1-fixed')?.verdict.kind}: ${findings.get('S1-fixed')?.verdict.headline}. Video: ${L('S1-fixed.mp4')}
 `;
 
-// ---- fill links if LINKS.txt has them -----------------------------------------------------------
-let out = md;
+// ---- fill links -------------------------------------------------------------------------------
+// 1) explicit per-file links from submission/LINKS.txt win; 2) otherwise a scenario points into the one
+// portal video at its start time (submission/portal-index.json); 3) runs not in the portal link to the
+// copy in the public repository.
+const links: Record<string, string> = {};
 const linksFile = path.join(SUB, 'LINKS.txt');
 if (existsSync(linksFile)) {
   for (const line of readFileSync(linksFile, 'utf8').split(/\r?\n/)) {
     const m = /^\s*([^#=\s][^=]*?)\s*=\s*(\S.*?)\s*$/.exec(line); // empty values are skipped
-    if (!m) continue;
-    const [, key, val] = m;
-    out = key === 'TEAM_NAME' ? out.replaceAll('{{TEAM_NAME}}', val) : out.replaceAll(`{{LINK:${key}}}`, val);
+    if (m) links[m[1]] = m[2];
   }
+}
+const portalIdx = existsSync(path.join(SUB, 'portal-index.json'))
+  ? (JSON.parse(readFileSync(path.join(SUB, 'portal-index.json'), 'utf8')) as { file: string; lengthS: number; clips: Record<string, number> })
+  : undefined;
+const portalUrl = portalIdx ? links[portalIdx.file] : undefined;
+const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+const REPO_VIDEOS = 'https://github.com/Tanmay-Ts/Tireless/blob/claude/flytbase-testing-harness-iwr6ar/submission/videos';
+const videoRef = (file: string) => {
+  if (links[file]) return `[recording](${links[file]})`;
+  const at = portalIdx?.clips[file];
+  if (at !== undefined) return portalUrl ? `[portal video, from ${mmss(at)}](${portalUrl})` : `portal video (this submission's Video link), from ${mmss(at)}`;
+  return `[recording in the repository](${REPO_VIDEOS}/${file})`;
+};
+let out = md.replace(/\{\{LINK:([^}]+)\}\}/g, (_, f: string) => videoRef(f));
+if (links.TEAM_NAME) out = out.replaceAll('{{TEAM_NAME}}', links.TEAM_NAME);
+if (portalIdx) {
+  const where = portalUrl ? `[${portalIdx.file}](${portalUrl})` : `the Video link of this submission (\`${portalIdx.file}\`)`;
+  out = out.replace(
+    '## 1. System design',
+    `**Videos:** every numbered scenario is in one real-time recording, ${where}, ${mmss(portalIdx.lengthS)} long; each scenario states where it starts. Each run is also available as its own file in the repository (\`submission/videos/\`).\n\n## 1. System design`,
+  );
 }
 writeFileSync(path.join(SUB, 'WRITEUP.md'), out);
 const left = [...new Set(out.match(/\{\{[^}]+\}\}/g) ?? [])];

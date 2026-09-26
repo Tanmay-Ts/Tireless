@@ -6,6 +6,8 @@
 
 **Summary:** 14 numbered scenarios: 10 caught mutations (3/5 agent-generated, 8/8 seed; the one bug both sets produced is counted once) and 4 real bugs in the original kit. 0 false alarms on the clean kit and two harmless changes. The agent's 2 misses are reported honestly in their own section.
 
+**Videos:** every numbered scenario is in one real-time recording, the Video link of this submission (`level1-all-scenarios.mp4`), 13:05 long; each scenario states where it starts. Each run is also available as its own file in the repository (`submission/videos/`).
+
 ## 1. System design
 
 Two cooperating parts: a **mutation agent** that injects realistic Level-1 bugs into the cockpit, and a deterministic **QA system** that catches them blind. No LLM runs inside the test loop, so every judged run is repeatable.
@@ -50,22 +52,22 @@ Two cooperating parts: a **mutation agent** that injects realistic Level-1 bugs 
 
 | # | Scenario | Category | Type | Detected by / verdict | Video |
 |---|---|---|---|---|---|
-| 1 | H-Speed wired to vertical speed: a cruising drone reads 0 m/s | Telemetry | agent mutation | caught by K2 | {{LINK:K-gen-02-hspeed-wrong-source.mp4}} |
-| 2 | Drone name rendered as raw HTML: a name can run script in the cockpit | Security and permissions | agent mutation | caught by K7 | {{LINK:K-gen-03-device-name-raw-html.mp4}} |
-| 3 | Video tile removed: selecting a drone shows no video panel | Visual UI · Video and media | agent mutation | caught by K1 | {{LINK:K-gen-05-video-tile-removed.mp4}} |
-| 4 | Connection badge stuck on “connected” while the link is down | Network and recovery | seed mutation | caught by K5 | {{LINK:K-m1-badge-always-connected.mp4}} |
-| 5 | Live connection shown as “disconnected” | Visual UI | seed mutation | caught by K4 | {{LINK:K-m2-online-shown-offline.mp4}} |
-| 6 | Battery shown 10 % lower than the drone reports | Telemetry | seed mutation | caught by K2 | {{LINK:K-m3-battery-off-by-10.mp4}} |
-| 7 | Telemetry panel shows another drone's data | Telemetry | seed mutation | caught by K2 + K3 | {{LINK:K-m4-wrong-drone-telemetry.mp4}} |
-| 8 | Flying drone's status pill says “standby” | Visual UI | seed mutation | caught by K3 | {{LINK:K-m5-flying-shown-as-landed.mp4}} |
-| 9 | Connection indicator removed from the cockpit | Visual UI · Network and recovery | seed mutation | caught by K1 + K5 | {{LINK:K-m6-connection-badge-removed.mp4}} |
-| 10 | Device list pushed off-screen on phones | Responsive UI | seed mutation | caught by K6 | {{LINK:K-m7-device-list-offscreen-phone.mp4}} |
-| 11 | Stale telemetry shown as live when the simulator link drops | Telemetry · Network and recovery | real bug in the original kit | BUG | {{LINK:S1.mp4}} |
-| 12 | Out-of-order telemetry rendered as current: drone jumps backwards | Telemetry · Network and recovery | real bug in the original kit | BUG | {{LINK:S2.mp4}} |
-| 13 | Map 2D/3D view toggle is covered by the video tile on phones | Responsive UI | real bug in the original kit | BUG | {{LINK:S3.mp4}} |
-| 14 | Selecting a drone on a phone does not show its telemetry | Responsive UI | real bug in the original kit | BUG | {{LINK:S4.mp4}} |
-| — | Live video shown as “off” | Video and media | agent mutation | missed (see Misses) | {{LINK:K-gen-01-video-live-shown-off.mp4}} |
-| — | Phone side panel made unscrollable | Responsive UI | agent mutation | missed (see Misses) | {{LINK:K-gen-04-left-panel-clipped-phone.mp4}} |
+| 1 | H-Speed wired to vertical speed: a cruising drone reads 0 m/s | Telemetry | agent mutation | caught by K2 | portal video (this submission's Video link), from 00:00 |
+| 2 | Drone name rendered as raw HTML: a name can run script in the cockpit | Security and permissions | agent mutation | caught by K7 | portal video (this submission's Video link), from 00:49 |
+| 3 | Video tile removed: selecting a drone shows no video panel | Visual UI · Video and media | agent mutation | caught by K1 | portal video (this submission's Video link), from 01:35 |
+| 4 | Connection badge stuck on “connected” while the link is down | Network and recovery | seed mutation | caught by K5 | portal video (this submission's Video link), from 02:21 |
+| 5 | Live connection shown as “disconnected” | Visual UI | seed mutation | caught by K4 | portal video (this submission's Video link), from 03:07 |
+| 6 | Battery shown 10 % lower than the drone reports | Telemetry | seed mutation | caught by K2 | portal video (this submission's Video link), from 03:54 |
+| 7 | Telemetry panel shows another drone's data | Telemetry | seed mutation | caught by K2 + K3 | portal video (this submission's Video link), from 04:44 |
+| 8 | Flying drone's status pill says “standby” | Visual UI | seed mutation | caught by K3 | portal video (this submission's Video link), from 05:43 |
+| 9 | Connection indicator removed from the cockpit | Visual UI · Network and recovery | seed mutation | caught by K1 + K5 | portal video (this submission's Video link), from 06:32 |
+| 10 | Device list pushed off-screen on phones | Responsive UI | seed mutation | caught by K6 | portal video (this submission's Video link), from 07:18 |
+| 11 | Stale telemetry shown as live when the simulator link drops | Telemetry · Network and recovery | real bug in the original kit | BUG | portal video (this submission's Video link), from 08:08 |
+| 12 | Out-of-order telemetry rendered as current: drone jumps backwards | Telemetry · Network and recovery | real bug in the original kit | BUG | portal video (this submission's Video link), from 08:53 |
+| 13 | Map 2D/3D view toggle is covered by the video tile on phones | Responsive UI | real bug in the original kit | BUG | portal video (this submission's Video link), from 09:48 |
+| 14 | Selecting a drone on a phone does not show its telemetry | Responsive UI | real bug in the original kit | BUG | portal video (this submission's Video link), from 10:23 |
+| — | Live video shown as “off” | Video and media | agent mutation | missed (see Misses) | [recording in the repository](https://github.com/Tanmay-Ts/Tireless/blob/claude/flytbase-testing-harness-iwr6ar/submission/videos/K-gen-01-video-live-shown-off.mp4) |
+| — | Phone side panel made unscrollable | Responsive UI | agent mutation | missed (see Misses) | [recording in the repository](https://github.com/Tanmay-Ts/Tireless/blob/claude/flytbase-testing-harness-iwr6ar/submission/videos/K-gen-04-left-panel-clipped-phone.mp4) |
 
 ### 1. H-Speed wired to vertical speed: a cruising drone reads 0 m/s
 
@@ -87,7 +89,7 @@ Two cooperating parts: a **mutation agent** that injects realistic Level-1 bugs 
 
 **Result.** K2 failed: H-Speed 0.0 m/s vs 10.0. K1, K3, K4, K5, K6, K7 passed.
 
-**Video:** {{LINK:K-gen-02-hspeed-wrong-source.mp4}}
+**Video:** portal video (this submission's Video link), from 00:00
 
 ---
 
@@ -113,7 +115,7 @@ The same bug was produced independently by the mutation agent (gen-03) and by th
 
 **Result.** K7 failed: HTML in name executed: onerror ran 1×, injected <img> element, injected element from name. K1, K2, K3, K4, K5, K6 passed. Seed m8 run: caught by K7.
 
-**Video:** {{LINK:K-gen-03-device-name-raw-html.mp4}} · seed m8 run: {{LINK:K-m8-xss-drone-name.mp4}}
+**Video:** portal video (this submission's Video link), from 00:49 · seed m8 run: [recording in the repository](https://github.com/Tanmay-Ts/Tireless/blob/claude/flytbase-testing-harness-iwr6ar/submission/videos/K-m8-xss-drone-name.mp4)
 
 ---
 
@@ -137,7 +139,7 @@ The same bug was produced independently by the mutation agent (gen-03) and by th
 
 **Result.** K1 failed: video tile: not found by testid, role or text. K2, K3, K4, K5, K6, K7 passed.
 
-**Video:** {{LINK:K-gen-05-video-tile-removed.mp4}}
+**Video:** portal video (this submission's Video link), from 01:35
 
 ---
 
@@ -161,7 +163,7 @@ The same bug was produced independently by the mutation agent (gen-03) and by th
 
 **Result.** K5 failed: link refused 6 s: no stale/offline cue at all. K1, K2, K3, K4, K6, K7 passed.
 
-**Video:** {{LINK:K-m1-badge-always-connected.mp4}}
+**Video:** portal video (this submission's Video link), from 02:21
 
 ---
 
@@ -185,7 +187,7 @@ The same bug was produced independently by the mutation agent (gen-03) and by th
 
 **Result.** K4 failed: cue "socket disconnected" · cue "class badge-disconnected" · badge says "socket disconnected" while live. K1, K2, K3, K5, K6, K7 passed.
 
-**Video:** {{LINK:K-m2-online-shown-offline.mp4}}
+**Video:** portal video (this submission's Video link), from 03:07
 
 ---
 
@@ -209,7 +211,7 @@ The same bug was produced independently by the mutation agent (gen-03) and by th
 
 **Result.** K2 failed: Battery 89 % vs 98.5. K1, K3, K4, K5, K6, K7 passed.
 
-**Video:** {{LINK:K-m3-battery-off-by-10.mp4}}
+**Video:** portal video (this submission's Video link), from 03:54
 
 ---
 
@@ -233,7 +235,7 @@ The same bug was produced independently by the mutation agent (gen-03) and by th
 
 **Result.** K2 failed: Altitude RLT 0.0 m vs 30.0 · H-Speed 0.0 m/s vs 10.0 · Dist. from home 0 m vs 55.0 · Heading 134 ° vs 47.0. K3 failed: device list airborne / status pill grounded / backend airborne. K1, K4, K5, K6, K7 passed.
 
-**Video:** {{LINK:K-m4-wrong-drone-telemetry.mp4}}
+**Video:** portal video (this submission's Video link), from 04:44
 
 ---
 
@@ -257,7 +259,7 @@ The same bug was produced independently by the mutation agent (gen-03) and by th
 
 **Result.** K3 failed: device list airborne / status pill grounded / backend airborne. K1, K2, K4, K5, K6, K7 passed.
 
-**Video:** {{LINK:K-m5-flying-shown-as-landed.mp4}}
+**Video:** portal video (this submission's Video link), from 05:43
 
 ---
 
@@ -281,7 +283,7 @@ The same bug was produced independently by the mutation agent (gen-03) and by th
 
 **Result.** K1 failed: socket badge: not found by testid, role or text. K5 failed: link refused 6 s: no stale/offline cue at all. K2, K3, K4, K6, K7 passed.
 
-**Video:** {{LINK:K-m6-connection-badge-removed.mp4}}
+**Video:** portal video (this submission's Video link), from 06:32
 
 ---
 
@@ -305,7 +307,7 @@ The same bug was produced independently by the mutation agent (gen-03) and by th
 
 **Result.** K6 failed: Drone 1 Dock 1 dock open in_flight: outside the viewport; after scrolling: still not visible (+3). K1, K2, K3, K4, K5, K7 passed.
 
-**Video:** {{LINK:K-m7-device-list-offscreen-phone.mp4}}
+**Video:** portal video (this submission's Video link), from 07:18
 
 ---
 
@@ -354,7 +356,7 @@ The same bug was produced independently by the mutation agent (gen-03) and by th
 | 11.2 s | 11.6 s ago | disconnected | socket connected | in_flight | 10.0 m/s | 65 m | 175 m | none |
 | 12.2 s | 12.6 s ago | disconnected | socket connected | in_flight | 10.0 m/s | 65 m | 185 m | none |
 
-**Video:** {{LINK:S1.mp4}}
+**Video:** portal video (this submission's Video link), from 08:08
 
 ---
 
@@ -400,7 +402,7 @@ The same bug was produced independently by the mutation agent (gen-03) and by th
 | 16.0 s | 205 m | 195 m | frame 1001 ms older than one already delivered |
 | 19.4 s | 240 m | 230 m | frame 1002 ms older than one already delivered |
 
-**Video:** {{LINK:S2.mp4}}
+**Video:** portal video (this submission's Video link), from 08:53
 
 ---
 
@@ -445,7 +447,7 @@ The same bug was produced independently by the mutation agent (gen-03) and by th
 | 320×568 (Small phone) | 2D toggle: covered by div[data-testid=video-player].video-placeholder; 3D toggle: covered by div[data-testid=video-player].video-placeholder | usable |
 | 375×667 (iPhone SE) | 2D toggle: covered by div[data-testid=video-player].video-placeholder; 3D toggle: covered by div[data-testid=video-player].video-placeholder | usable |
 
-**Video:** {{LINK:S3.mp4}}
+**Video:** portal video (this submission's Video link), from 09:48
 
 ---
 
@@ -490,23 +492,23 @@ The same bug was produced independently by the mutation agent (gen-03) and by th
 | Pixel 7 412×915 | 0/9 telemetry visible, status pill hidden (0 % in view) |  |
 | emulated iPhone SE (touch, DPR 2) | 0/9 telemetry visible, status pill hidden (0 % in view) |  |
 
-**Video:** {{LINK:S4.mp4}}
+**Video:** portal video (this submission's Video link), from 10:23
 
 
 ## 3. Misses (not numbered)
 
 The mutation agent produced 2 mutations that the suite did not flag. They are reported, not hidden.
 
-**Live video shown as “off”** (Video and media, `qa/mutants/generated/gen-01-video-live-shown-off.patch`). The agent inverted the video-enabled test in `VideoTile.tsx`, so a live stream would display the “Video off” placeholder. In the kit's normal setup the cockpit shows a live FPV stream (organizers' setup guide: MediaMTX serves one WHEP feed per drone). The cloud recording environment had no video stream, so the clean cockpit already showed “off”, and the suite has no video-liveness check yet: “video is live” cannot be asserted as an invariant there. Next step: a video-liveness oracle that compares the tile's label with actual playback (`currentTime` advancing, `videoWidth` > 0, frame hashes changing), run on a machine with the live stream up. Video: {{LINK:K-gen-01-video-live-shown-off.mp4}}
+**Live video shown as “off”** (Video and media, `qa/mutants/generated/gen-01-video-live-shown-off.patch`). The agent inverted the video-enabled test in `VideoTile.tsx`, so a live stream would display the “Video off” placeholder. In the kit's normal setup the cockpit shows a live FPV stream (organizers' setup guide: MediaMTX serves one WHEP feed per drone). The cloud recording environment had no video stream, so the clean cockpit already showed “off”, and the suite has no video-liveness check yet: “video is live” cannot be asserted as an invariant there. Next step: a video-liveness oracle that compares the tile's label with actual playback (`currentTime` advancing, `videoWidth` > 0, frame hashes changing), run on a machine with the live stream up. Video: [recording in the repository](https://github.com/Tanmay-Ts/Tireless/blob/claude/flytbase-testing-harness-iwr6ar/submission/videos/K-gen-01-video-live-shown-off.mp4)
 
-**Phone side panel made unscrollable** (Responsive UI, `qa/mutants/generated/gen-04-left-panel-clipped-phone.patch`). The agent added `overflow: hidden` to the phone side panel, clipping the telemetry below its fold. The unmodified kit already hides telemetry on phones (real bug S4 below), so “telemetry visible on a phone” cannot be a clean-passing invariant. K6 checks that interactive controls stay reachable; all four device-row controls still fit at 390 px, so control reachability is genuinely unchanged. The mutation worsens a pre-existing defect instead of introducing a newly detectable one. Video: {{LINK:K-gen-04-left-panel-clipped-phone.mp4}}
+**Phone side panel made unscrollable** (Responsive UI, `qa/mutants/generated/gen-04-left-panel-clipped-phone.patch`). The agent added `overflow: hidden` to the phone side panel, clipping the telemetry below its fold. The unmodified kit already hides telemetry on phones (real bug S4 below), so “telemetry visible on a phone” cannot be a clean-passing invariant. K6 checks that interactive controls stay reachable; all four device-row controls still fit at 390 px, so control reachability is genuinely unchanged. The mutation worsens a pre-existing defect instead of introducing a newly detectable one. Video: [recording in the repository](https://github.com/Tanmay-Ts/Tireless/blob/claude/flytbase-testing-harness-iwr6ar/submission/videos/K-gen-04-left-panel-clipped-phone.mp4)
 
 ## 4. Precision controls (not numbered)
 
 The suite must not raise false alarms. Each control below was run with a recording.
 
-- **Clean kit:** all seven checks pass on the unmodified kit (all 7 invariants hold). Video: {{LINK:K-clean.mp4}}
-- **Harmless: test ids renamed.** all 7 invariants hold: elements found through visible text and labels instead. Video: {{LINK:K-h1-testids-renamed.mp4}}
-- **Harmless: wording changed** (“FlytBase Cockpit”→“FlytBase Operations”, “Devices”→“Fleet”, “socket …”→“link …”). all 7 invariants hold: meaning is compared, not text. Video: {{LINK:K-h2-wording-change.mp4}}
-- **Land returns to the dock (intended, not flagged).** README says "down where it is"; backend (latest commit: return-to-dock landing) flew 70 m back and landed on the dock in 15.4 s. Cockpit followed it: in_flight → landing → standby, altitude/distance within tolerance in 100 % of 21 samples, final 0.0 m / 0 m. Video: {{LINK:P1.mp4}}
-- **Scenario 11 on a fixed cockpit.** The stale-data scenario re-run against a cockpit patched to flag stale data (`qa/mutants/control-fix-stale.patch`): PASS: UI flagged stale data after 4.1 s. Video: {{LINK:S1-fixed.mp4}}
+- **Clean kit:** all seven checks pass on the unmodified kit (all 7 invariants hold). Video: portal video (this submission's Video link), from 12:18
+- **Harmless: test ids renamed.** all 7 invariants hold: elements found through visible text and labels instead. Video: [recording in the repository](https://github.com/Tanmay-Ts/Tireless/blob/claude/flytbase-testing-harness-iwr6ar/submission/videos/K-h1-testids-renamed.mp4)
+- **Harmless: wording changed** (“FlytBase Cockpit”→“FlytBase Operations”, “Devices”→“Fleet”, “socket …”→“link …”). all 7 invariants hold: meaning is compared, not text. Video: [recording in the repository](https://github.com/Tanmay-Ts/Tireless/blob/claude/flytbase-testing-harness-iwr6ar/submission/videos/K-h2-wording-change.mp4)
+- **Land returns to the dock (intended, not flagged).** README says "down where it is"; backend (latest commit: return-to-dock landing) flew 70 m back and landed on the dock in 15.4 s. Cockpit followed it: in_flight → landing → standby, altitude/distance within tolerance in 100 % of 21 samples, final 0.0 m / 0 m. Video: portal video (this submission's Video link), from 10:55
+- **Scenario 11 on a fixed cockpit.** The stale-data scenario re-run against a cockpit patched to flag stale data (`qa/mutants/control-fix-stale.patch`): PASS: UI flagged stale data after 4.1 s. Video: portal video (this submission's Video link), from 11:34
