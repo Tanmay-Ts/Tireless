@@ -1,0 +1,31 @@
+diff --git a/frontend/src/components/TelemetryPanel.tsx b/frontend/src/components/TelemetryPanel.tsx
+index 55aa842..a5e8210 100644
+--- a/frontend/src/components/TelemetryPanel.tsx
++++ b/frontend/src/components/TelemetryPanel.tsx
+@@ -1,3 +1,4 @@
++import { useEffect, useState } from 'react';
+ import { useTelemetryStore } from '../store/telemetry.store';
+ import { TESTIDS } from '../testids';
+ 
+@@ -25,6 +26,13 @@ export function TelemetryPanel() {
+   const pos = drone?.global_position;
+   const wind = dock?.weather.wind;
+   const status = drone?.flight_status?.flight_status ?? 'unknown';
++  // Control build: re-render every second and flag position data older than 3 s.
++  const [now, setNow] = useState(Date.now());
++  useEffect(() => {
++    const t = setInterval(() => setNow(Date.now()), 1000);
++    return () => clearInterval(t);
++  }, []);
++  const ageS = pos ? Math.round((now - pos.timestamp) / 1000) : undefined;
+ 
+   const rows: Array<{ label: string; value: string; testid: string }> = [
+     { label: 'Battery', value: fmt(drone?.battery?.percent, '%', 0), testid: TESTIDS.telemetryBattery },
+@@ -49,6 +57,7 @@ export function TelemetryPanel() {
+         <span data-testid={TESTIDS.statusFlight} className={`pill pill-${status}`}>
+           {status}
+         </span>
++        {ageS !== undefined && ageS > 3 && <span className="pill pill-unknown">stale · {ageS} s ago</span>}
+       </h2>
+       <dl className="telemetry">
+         {rows.map((r) => (
