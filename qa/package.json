@@ -18,7 +18,8 @@
     "record": "tsx run.ts S1 S2 S3 S4 P1",
     "control": "tsx control.ts",
     "mutate": "tsx mutator.ts",
-    "writeup": "tsx writeup.ts"
+    "writeup": "tsx writeup.ts",
+    "l2": "tsx l2.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
