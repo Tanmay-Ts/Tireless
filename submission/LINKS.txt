@@ -1,0 +1,32 @@
+# Fill in after uploading submission/videos to Drive (share: Anyone with the link).
+# One entry per line, value after "=". Then, in the qa folder:  npx tsx writeup.ts
+# (regenerates submission/WRITEUP.md and WRITEUP.docx with the links filled in).
+
+TEAM_NAME = 
+
+# Portal video field (not a placeholder in the doc):
+level1-all-scenarios.mp4 = 
+
+# Scenario videos, in document order:
+K-gen-02-hspeed-wrong-source.mp4 = 
+K-gen-03-device-name-raw-html.mp4 = 
+K-gen-05-video-tile-removed.mp4 = 
+K-m1-badge-always-connected.mp4 = 
+K-m2-online-shown-offline.mp4 = 
+K-m3-battery-off-by-10.mp4 = 
+K-m4-wrong-drone-telemetry.mp4 = 
+K-m5-flying-shown-as-landed.mp4 = 
+K-m6-connection-badge-removed.mp4 = 
+K-m7-device-list-offscreen-phone.mp4 = 
+S1.mp4 = 
+S2.mp4 = 
+S3.mp4 = 
+S4.mp4 = 
+K-gen-01-video-live-shown-off.mp4 = 
+K-gen-04-left-panel-clipped-phone.mp4 = 
+K-m8-xss-drone-name.mp4 = 
+K-clean.mp4 = 
+K-h1-testids-renamed.mp4 = 
+K-h2-wording-change.mp4 = 
+P1.mp4 = 
+S1-fixed.mp4 = 
