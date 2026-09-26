@@ -15,7 +15,8 @@
     "p1": "tsx run.ts P1",
     "mutants": "tsx mutants.ts",
     "video": "tsx video.ts",
-    "record": "tsx run.ts S1 S2 S3 S4 P1"
+    "record": "tsx run.ts S1 S2 S3 S4 P1",
+    "control": "tsx control.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

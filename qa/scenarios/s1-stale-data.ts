@@ -288,3 +288,16 @@ export const S1: Scenario = {
     return { kind: 'PASS', headline: `UI flagged stale data after ${fmtS(latency)}`, sub: `Cue: ${describe(samples.find((s) => s.newCues.length)?.newCues ?? [])}` };
   },
 };
+
+/** Precision control for S1: same run against a cockpit patched to flag stale data (mutants/control-fix-stale.patch). */
+export const S1_FIXED: Scenario = {
+  ...S1,
+  id: 'S1-fixed',
+  section: 'precision',
+  title: 'S1 on a fixed cockpit: stale data is flagged, so S1 reports PASS',
+  rootCause: 'control-fixed-build',
+  startState: `cockpit patched with qa/mutants/control-fix-stale.patch (shows "stale · N s ago" after 3 s without data) · ${S1.startState}`,
+  description:
+    'Precision control for S1. The same scenario, oracle and thresholds, run against a copy of the cockpit patched to show "stale · N s ago" when position data is older than 3 s. ' +
+    'If the S1 oracle were simply always red, it would flag this build too. Expected: PASS.',
+};
