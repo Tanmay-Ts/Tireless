@@ -51,7 +51,15 @@ export async function selectDrone(ctx: Ctx, scope: Scope, droneId: string, name:
   if (!row.located.loc) throw new SetupError(`device row for ${name} not found (testid, role or text)`);
   await row.located.loc.click();
   if (waitTelemetry)
-    await ctx.driver.waitFor(async () => parseNum((await readText(scope, T.battery)).text) !== undefined, 10000, 'telemetry panel shows battery');
+    // Any telemetry value populating means the panel is live; don't depend on one field (a mutation may remove it).
+    await ctx.driver.waitFor(
+      async () => {
+        const vals = await Promise.all([T.battery, T.altRlt, T.hSpeed].map((t) => readText(scope, t)));
+        return vals.some((v) => parseNum(v.text) !== undefined);
+      },
+      10000,
+      'telemetry panel shows a value',
+    );
   return row.via;
 }
 
