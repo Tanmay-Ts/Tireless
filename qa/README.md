@@ -16,6 +16,7 @@ npm install
 npx playwright install chromium        # once, if you do not already have Playwright's Chromium
 cp .env.example .env                   # set COCKPIT_URL=http://localhost:5173 in npm mode
 npm run s1                             # headed; video → out/videos/S1.webm, trace → out/traces/S1.zip
+npm run scenario -- S2 S3 S4           # or: npm run scenario -- all
 npm run report                         # out/report.md + out/findings.json (also written after every run)
 npx playwright show-trace out/traces/S1.zip
 ```
@@ -34,7 +35,8 @@ clicks cannot interfere.
 | `overlay.ts` | Evidence HUD. It sits in a closed shadow root with `pointer-events:none` and `aria-hidden`, so it can never affect a check. |
 | `runner.ts` | Scenario lifecycle: video at viewport size, trace, HUD, verdict banner held for 6 s, artefacts, finding JSON. A precondition that fails gives SETUP-FAILED, never BUG. |
 | `report.ts` | Findings → `out/report.md`: system design plus numbered scenarios (Title / Description / Approach / steps / API calls / evidence table / video placeholder), grouped by root cause. |
-| `scenarios/` | One file per scenario. |
+| `device.ts` | Phone/tablet harness: the cockpit runs in an iframe with the exact device viewport (the app's media queries apply), shown scaled beside the HUD. `crossCheckOnDevice()` repeats a check in real Playwright device emulation (touch, DPR, mobile UA). |
+| `scenarios/` | One file per scenario. `common.ts` holds the shared operator steps (clean start, open, select, take off). |
 | `mutants/` | Patches for the kit used as controls. `control-fix-stale.patch` makes the cockpit flag stale data; S1 must then report PASS. |
 
 ## S1: stale data shown as live
@@ -47,5 +49,17 @@ clicks cannot interfere.
 6. **BUG** only if every judged sample has no cue. **PASS** if a cue appears within grace + 1.5 s.
 
 Precision check: `git -C <kit> apply qa/mutants/control-fix-stale.patch`, run `npm run s1` (expect PASS), then `git -C <kit> apply -R ...`.
+
+## S2: out-of-order telemetry rendered as current
+
+The drone flies a straight line away from its dock, so the real distance only grows. A MutationObserver records every value "Dist. from home" displays. Control: 5 s with no fault and no backward step. Then `socket-delay 3000` for 22 s. Every UI backward step of more than 2 m is matched to the frame that caused it (same value, arrived within 600 ms on our socket) and counts only if that frame is older than one already delivered. BUG requires at least 2 matched jumps. Fewer than 2 out-of-order frames = SETUP-FAILED.
+
+## S3: map 2D/3D toggle covered on phones
+
+The laptop is the baseline: every button, link and row is audited. The same audit runs at 768 / 412 / 390 / 360 / 320 / 375 px. A control usable on the laptop must stay displayed, in view (or scroll-reachable) and uncovered (`elementFromPoint` hits it). Then a real tap on "2D" is checked via `aria-pressed`, Playwright's "intercepts pointer events" error is recorded, and the result is cross-checked in an emulated iPhone SE.
+
+## S4: telemetry not shown after selecting a drone on a phone
+
+Laptop control: status plus 9/9 telemetry, map and video are all visible together. On iPhone SE, after tapping Drone 1, the same items are probed (in view, at least 60 % unclipped by scroll boxes, not covered). The operator then scrolls the side panel with the mouse wheel, and the report states what is visible at once. Repeated on iPhone 13, Pixel 7 and an emulated iPhone SE.
 
 Known limit: the map is a Cesium canvas, so a stale cue drawn only on the map (a dock billboard) cannot be seen by the DOM scan.

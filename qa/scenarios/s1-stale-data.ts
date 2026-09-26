@@ -27,8 +27,8 @@ import {
   type Target,
 } from '../oracles.ts';
 import type { Ctx, Scenario, Verdict } from '../runner.ts';
+import { cleanStartWithTruth, DRONE, fmtS, selectDrone, takeoffToCruise, waitCockpitConnected, withTitleCard } from './common.ts';
 
-const DRONE = 'drone-1';
 /** Fault outlasts the recording so the verdict frames still show the broken state (cleared after). */
 const FAULT_SECONDS = 30;
 /** Judged window: from the end of the grace period for this long. */
@@ -59,7 +59,6 @@ async function readUi(ctx: Ctx, droneName: string): Promise<UiRead> {
   return out;
 }
 
-const fmtS = (ms: number) => (Number.isFinite(ms) ? `${(ms / 1000).toFixed(1)} s` : '∞');
 const describe = (ind: Indicator[]) => (ind.length ? [...new Set(ind.map((i) => `"${i.text}"`))].slice(0, 2).join(', ') : 'none');
 
 export const S1: Scenario = {
@@ -98,30 +97,17 @@ export const S1: Scenario = {
     let droneName = 'Drone 1';
 
     // 1 ─ clean start, with the title card on screen
-    await hud.card(true);
-    const cardUntil = Date.now() + 4000;
-    await step(0, async () => {
-      await driver.cleanStart(cfg.speed);
-      const dev = (await driver.devices()).find((d) => d.id === DRONE);
-      if (!dev) throw new SetupError(`${DRONE} not in /api/devices`);
-      droneName = dev.name;
-      await truth.connect([DRONE, dev.dockId ?? 'dock-1']);
-      truth.startPolling();
-      await driver.waitFor(() => truth.frameAgeMs(DRONE) < 1500, 5000, 'truth socket receiving drone-1 telemetry');
-    });
-    await sleep(Math.max(0, cardUntil - Date.now()));
-    await hud.card(false);
+    await withTitleCard(ctx, () =>
+      step(0, async () => {
+        droneName = (await cleanStartWithTruth(ctx, DRONE)).name;
+      }),
+    );
 
     // 2 ─ open the cockpit and select the drone like an operator would
     await step(1, async () => {
       await page.goto(cfg.cockpitUrl, { waitUntil: 'domcontentloaded' });
-      await driver.waitFor(async () => /connected/i.test((await readText(page, T.socketBadge)).text ?? '') && !/dis/i.test((await readText(page, T.socketBadge)).text ?? ''), 20000, 'cockpit socket badge connected');
-      const row = await readText(page, T.deviceRow(DRONE, droneName));
-      ctx.via[T.deviceRow(DRONE, droneName).name] = row.via;
-      if (!row.located.loc) throw new SetupError(`device row for ${droneName} not found (testid, role or text)`);
-      await row.located.loc.click();
-      await driver.waitFor(async () => parseNum((await readText(page, T.battery)).text) !== undefined, 10000, 'telemetry panel shows battery');
-      await hud.step(1, 'ok', `row found via ${row.via}`);
+      await waitCockpitConnected(ctx, page);
+      await hud.step(1, 'ok', `row found via ${await selectDrone(ctx, page, DRONE, droneName)}`);
     });
 
     const liveRows = (ui: UiRead): HudRow[] => {
@@ -138,19 +124,11 @@ export const S1: Scenario = {
     };
 
     // 3 ─ take off and reach cruise
-    await step(2, async () => {
-      await driver.takeoff(DRONE);
-      const end = Date.now() + 30000;
-      while (truth.drone(DRONE)?.status !== 'in_flight') {
-        if (Date.now() > end) throw new SetupError(`${DRONE} did not reach in_flight`);
+    await step(2, () =>
+      takeoffToCruise(ctx, DRONE, async () => {
         await hud.rows(liveRows(await readUi(ctx, droneName)), 'TRUTH vs UI · live');
-        await sleep(700);
-      }
-      for (let i = 0; i < 3; i++) {
-        await hud.rows(liveRows(await readUi(ctx, droneName)), 'TRUTH vs UI · live');
-        await sleep(800);
-      }
-    });
+      }),
+    );
 
     // 4 ─ control: UI matches truth and shows no stale cue while data is live
     const baseline: Indicator[] = [];

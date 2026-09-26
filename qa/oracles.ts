@@ -3,7 +3,10 @@
  * truth vs UI side by side. Locators go testid → role+name → visible label/text and report which
  * one was used (a fallback means a testid was renamed or removed: worth noting, not a bug by itself).
  */
-import type { Locator, Page } from 'playwright';
+import type { Frame, Locator, Page } from 'playwright';
+
+/** Oracles run on a page or on a frame (the phone harness puts the cockpit in an iframe). */
+export type Scope = Page | Frame;
 
 export type Via = 'testid' | 'role' | 'label' | 'text' | 'none';
 export type Target = {
@@ -30,13 +33,17 @@ export const T = {
   hSpeed: { name: 'H-Speed', testid: 'telemetry-hspeed', label: 'H-Speed' } as Target,
   vSpeed: { name: 'V-Speed', testid: 'telemetry-vspeed', label: 'V-Speed' } as Target,
   heading: { name: 'Heading', testid: 'telemetry-heading', label: 'Heading' } as Target,
+  altAsl: { name: 'Altitude ASL', testid: 'telemetry-alt-asl', label: 'Altitude ASL' } as Target,
+  wind: { name: 'Wind', testid: 'telemetry-wind', label: 'Wind' } as Target,
+  mapCanvas: { name: 'map', testid: 'map-canvas', role: 'region', roleName: /map/i } as Target,
+  videoPlayer: { name: 'video tile', testid: 'video-player', text: /^video off$|^live$/i } as Target,
   homeDistance: { name: 'Dist. from home', testid: 'telemetry-home-distance', label: 'Dist. from home' } as Target,
   map2d: { name: '2D toggle', testid: 'map-view-2d', role: 'button', roleName: /^2D$/i } as Target,
   map3d: { name: '3D toggle', testid: 'map-view-3d', role: 'button', roleName: /^3D$/i } as Target,
   videoState: { name: 'video label', testid: 'video-state' } as Target,
 };
 
-export async function locate(page: Page, t: Target): Promise<Located> {
+export async function locate(page: Scope, t: Target): Promise<Located> {
   if (t.testid) {
     const l = page.getByTestId(t.testid);
     if (await l.count()) return { target: t, loc: l.first(), via: 'testid' };
@@ -57,10 +64,10 @@ export async function locate(page: Page, t: Target): Promise<Located> {
   return { target: t, loc: null, via: 'none' };
 }
 
-export async function readText(page: Page, t: Target): Promise<{ text: string | null; via: Via; located: Located }> {
+export async function readText(page: Scope, t: Target): Promise<{ text: string | null; via: Via; located: Located }> {
   const located = await locate(page, t);
   if (!located.loc) return { text: null, via: 'none', located };
-  let text = ((await located.loc.textContent({ timeout: 1000 }).catch(() => null)) ?? '').trim();
+  let text = ((await located.loc.innerText({ timeout: 1000 }).catch(() => null)) ?? '').replace(/\s+/g, ' ').trim();
   if (located.via === 'label' && t.label) text = text.replace(t.label, '').trim();
   return { text, via: located.via, located };
 }
@@ -119,7 +126,7 @@ export const STALE_WORDS =
  * replaced by dashes, or telemetry dimmed below 60 % opacity. Video-tile hits are tagged separately:
  * a video label is about video, not telemetry freshness.
  */
-export async function freshnessScan(page: Page): Promise<Indicator[]> {
+export async function freshnessScan(page: Scope): Promise<Indicator[]> {
   return page.evaluate((wordsSrc) => {
     const words = new RegExp(wordsSrc, 'i');
     const out: Indicator[] = [];
@@ -187,31 +194,162 @@ export function newIndicators(now: Indicator[], baseline: Indicator[]) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Reachability: exists, visible, inside the viewport, not covered (elementFromPoint), enabled.
+// Reachability / visibility: exists, displayed, inside the viewport, not clipped by a scroll box,
+// not covered (elementFromPoint), enabled. One geometry routine, installed once per document as
+// plain JS (no tsx helpers), shared by single-target checks and the whole-page control audit.
 // ---------------------------------------------------------------------------------------------
-export type Reach = { ok: boolean; exists: boolean; visible: boolean; inViewport: boolean; uncovered: boolean; enabled: boolean; coveredBy?: string; via: Via; reason?: string };
+const PROBE_SRC = `window.__qaProbe = window.__qaProbe || function (el, opts) {
+  opts = opts || {};
+  var describe = function (e) {
+    if (!e || !e.tagName) return 'nothing';
+    var tid = e.getAttribute('data-testid');
+    var cls = typeof e.className === 'string' && e.className.trim() ? '.' + e.className.trim().split(/\\s+/)[0] : '';
+    return e.tagName.toLowerCase() + (tid ? '[data-testid=' + tid + ']' : '') + cls;
+  };
+  var label = (el.getAttribute('aria-label') || el.innerText || el.value || el.getAttribute('title') || '').trim().replace(/\\s+/g, ' ').slice(0, 40);
+  var r0 = el.getBoundingClientRect();
+  var res = { label: label, testid: el.getAttribute('data-testid'), tag: el.tagName.toLowerCase(),
+    enabled: !el.disabled && el.getAttribute('aria-disabled') !== 'true', fraction: 0 };
+  var shown = el.checkVisibility ? el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }) : true;
+  if (!shown || r0.width < 1 || r0.height < 1) { res.state = 'hidden'; return res; }
+  var measure = function () {
+    var r = el.getBoundingClientRect();
+    var v = { l: Math.max(r.left, 0), t: Math.max(r.top, 0), r: Math.min(r.right, innerWidth), b: Math.min(r.bottom, innerHeight) };
+    var clippedBy = null;
+    for (var p = el.parentElement; p && p !== document.documentElement; p = p.parentElement) {
+      var cs = getComputedStyle(p);
+      if (!/(auto|scroll|hidden|clip)/.test(cs.overflowX + ' ' + cs.overflowY)) continue;
+      var pr = p.getBoundingClientRect();
+      var before = Math.max(0, v.r - v.l) * Math.max(0, v.b - v.t);
+      v = { l: Math.max(v.l, pr.left), t: Math.max(v.t, pr.top), r: Math.min(v.r, pr.right), b: Math.min(v.b, pr.bottom) };
+      var after = Math.max(0, v.r - v.l) * Math.max(0, v.b - v.t);
+      if (after < before - 1 && !clippedBy) clippedBy = describe(p) + ' (' + Math.round(pr.width) + '×' + Math.round(pr.height) + ' px)';
+    }
+    var area = Math.max(0, v.r - v.l) * Math.max(0, v.b - v.t);
+    var coveredBy = null;
+    if (area > 0) {
+      var pts = [[0.5, 0.5], [0.25, 0.5], [0.75, 0.5]];
+      for (var i = 0; i < pts.length; i++) {
+        var h = document.elementFromPoint(v.l + (v.r - v.l) * pts[i][0], v.t + (v.b - v.t) * pts[i][1]);
+        if (!h || !(h === el || el.contains(h))) { coveredBy = describe(h); break; }
+      }
+    }
+    return { fraction: area / (r.width * r.height), clippedBy: clippedBy, coveredBy: coveredBy,
+      offscreen: r.right <= 0 || r.bottom <= 0 || r.left >= innerWidth || r.top >= innerHeight,
+      box: { x: r.left, y: r.top, w: r.width, h: r.height } };
+  };
+  var m = measure();
+  res.fraction = m.fraction; res.clippedBy = m.clippedBy; res.coveredBy = m.coveredBy; res.box = m.box;
+  res.state = m.fraction >= 0.6 ? (m.coveredBy ? 'covered' : 'ok') : m.offscreen && !m.clippedBy ? 'offscreen' : 'clipped';
+  if (opts.tryScroll && (res.state === 'clipped' || res.state === 'offscreen')) {
+    // Could a user reach it by scrolling? Scroll it into view, re-measure, then restore every scroll position.
+    var saved = [];
+    for (var q = el.parentElement; q; q = q.parentElement) saved.push([q, q.scrollTop, q.scrollLeft]);
+    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    var m2 = measure();
+    res.afterScroll = m2.fraction >= 0.6 ? (m2.coveredBy ? 'covered by ' + m2.coveredBy : 'ok') : 'still not visible';
+    for (var k = 0; k < saved.length; k++) { saved[k][0].scrollTop = saved[k][1]; saved[k][0].scrollLeft = saved[k][2]; }
+  }
+  return res;
+};`;
 
-export async function reachability(page: Page, t: Target): Promise<Reach> {
-  const located = await locate(page, t);
-  const base = { exists: false, visible: false, inViewport: false, uncovered: false, enabled: false, via: located.via };
-  if (!located.loc) return { ...base, ok: false, reason: 'not found by testid, role or text' };
-  const loc = located.loc;
-  const visible = await loc.isVisible();
-  const enabled = await loc.isEnabled().catch(() => true);
-  const geo = await loc.evaluate((el) => {
-    const r = el.getBoundingClientRect();
-    const inViewport = r.width > 0 && r.height > 0 && r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight;
-    const describe = (e: Element | null) =>
-      !e ? 'nothing' : `${e.tagName.toLowerCase()}${e.getAttribute('data-testid') ? `[data-testid=${e.getAttribute('data-testid')}]` : ''}${typeof e.className === 'string' && e.className ? '.' + e.className.split(/\s+/)[0] : ''}`;
-    // Centre plus two inner points: covered = the top-most element there is not this control or inside it.
-    const pts = [[0.5, 0.5], [0.25, 0.5], [0.75, 0.5]].map(([fx, fy]) => [r.left + r.width * fx, r.top + r.height * fy]);
-    const hits = pts.map(([x, y]) => document.elementFromPoint(x, y));
-    const blocker = hits.find((h) => !h || !(h === el || el.contains(h)));
-    return { inViewport, uncovered: !blocker, coveredBy: blocker === undefined ? undefined : describe(blocker) };
-  });
-  const ok = visible && enabled && geo.inViewport && geo.uncovered;
-  const reason = !visible ? 'not visible' : !geo.inViewport ? 'outside the viewport' : !geo.uncovered ? `covered by ${geo.coveredBy}` : !enabled ? 'disabled' : undefined;
-  return { ok, exists: true, visible, enabled, inViewport: geo.inViewport, uncovered: geo.uncovered, coveredBy: geo.coveredBy, via: located.via, reason };
+export type ProbeState = 'ok' | 'covered' | 'clipped' | 'offscreen' | 'hidden' | 'missing';
+type Probe = {
+  label: string;
+  testid: string | null;
+  tag: string;
+  enabled: boolean;
+  state: ProbeState;
+  fraction: number;
+  clippedBy?: string | null;
+  coveredBy?: string | null;
+  afterScroll?: string;
+  box?: { x: number; y: number; w: number; h: number };
+};
+export type Reach = Probe & { ok: boolean; via: Via; reason?: string; located: Located };
+
+export function probeReason(p: Pick<Probe, 'state' | 'coveredBy' | 'clippedBy' | 'fraction' | 'afterScroll'>): string | undefined {
+  switch (p.state) {
+    case 'ok':
+      return undefined;
+    case 'covered':
+      return `covered by ${p.coveredBy}`;
+    case 'clipped':
+      return `clipped by ${p.clippedBy ?? 'viewport'} (${Math.round(p.fraction * 100)} % visible)${p.afterScroll ? `; after scrolling: ${p.afterScroll}` : ''}`;
+    case 'offscreen':
+      return `outside the viewport${p.afterScroll ? `; after scrolling: ${p.afterScroll}` : ''}`;
+    case 'hidden':
+      return 'not displayed';
+    case 'missing':
+      return 'not found by testid, role or text';
+  }
+}
+
+async function installProbe(scope: Scope) {
+  await scope.evaluate(PROBE_SRC);
+}
+
+/** Is this element visible to the user right now (and, with tryScroll, reachable by scrolling)? */
+export async function reachability(scope: Scope, t: Target, opts: { tryScroll?: boolean } = {}): Promise<Reach> {
+  const located = await locate(scope, t);
+  if (!located.loc)
+    return { label: t.name, testid: null, tag: '', enabled: false, state: 'missing', fraction: 0, ok: false, via: 'none', reason: probeReason({ state: 'missing', fraction: 0 }), located };
+  await installProbe(scope);
+  const p = (await located.loc.evaluate((el, o) => (window as any).__qaProbe(el, o), opts)) as Probe;
+  return { ...p, ok: p.state === 'ok' && p.enabled, via: located.via, reason: p.enabled ? probeReason(p) : 'disabled', located };
+}
+
+export const CONTROL_SELECTOR =
+  'button, a[href], [role=button], [role=tab], [role=switch], input:not([type=hidden]), select, textarea, [data-testid^="device-row-"]';
+
+export type AuditRow = Probe & { key: string };
+
+/** Every interactive control on the page, probed in one pass (scroll-reachability included). */
+export async function auditControls(scope: Scope): Promise<AuditRow[]> {
+  await installProbe(scope);
+  return scope.evaluate((sel) => {
+    const w = window as any;
+    return Array.from(document.querySelectorAll(sel))
+      .filter((el) => !el.closest('[data-qa-overlay]'))
+      .map((el) => {
+        const p = w.__qaProbe(el, { tryScroll: true });
+        return { ...p, key: p.testid ?? `${p.tag}:${p.label}` };
+      });
+  }, CONTROL_SELECTOR);
+}
+
+/** A control is broken at this size if it was usable in the baseline and now cannot be seen or reached. */
+export function auditFailures(now: AuditRow[], baseline: AuditRow[]) {
+  const byKey = new Map(now.map((r) => [r.key, r]));
+  return baseline
+    .filter((b) => b.state === 'ok')
+    .map((b) => {
+      const r = byKey.get(b.key);
+      if (!r) return { key: b.key, label: b.label, reason: 'missing (present in baseline)' };
+      const reachable = r.state === 'ok' || ((r.state === 'clipped' || r.state === 'offscreen') && r.afterScroll === 'ok');
+      return reachable ? null : { key: r.key, label: r.label, reason: probeReason(r) ?? r.state };
+    })
+    .filter((x): x is { key: string; label: string; reason: string } => x !== null);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Time series of what the UI displayed: a MutationObserver records every text change of an element
+// with its wall-clock time (same clock as the truth recorder), so no update between samples is missed.
+// ---------------------------------------------------------------------------------------------
+export async function watchText(loc: Locator, key: string) {
+  await loc.evaluate((el, k) => {
+    const w = window as any;
+    w.__qaSeries = w.__qaSeries ?? {};
+    const series: { t: number; text: string }[] = (w.__qaSeries[k] = [{ t: Date.now(), text: (el.textContent ?? '').trim() }]);
+    new MutationObserver(() => {
+      const text = (el.textContent ?? '').trim();
+      if (text !== series[series.length - 1]?.text) series.push({ t: Date.now(), text });
+    }).observe(el, { subtree: true, childList: true, characterData: true });
+  }, key);
+}
+
+export async function readSeries(scope: Scope, key: string): Promise<{ t: number; text: string }[]> {
+  return scope.evaluate((k) => ((window as any).__qaSeries?.[k] ?? []) as { t: number; text: string }[], key);
 }
 
 // ---------------------------------------------------------------------------------------------

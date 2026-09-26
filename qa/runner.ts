@@ -30,6 +30,8 @@ export type Scenario = {
   startState: string;
   steps: string[];
   run(ctx: Ctx): Promise<Verdict>;
+  /** Undo anything the scenario added to the kit (runs after the recording is closed). */
+  cleanup?(driver: Driver): Promise<void>;
 };
 
 export type Ctx = {
@@ -137,6 +139,7 @@ export async function runScenario(sc: Scenario): Promise<Finding> {
 
   truth.stop();
   await driver.clearFaults().catch(() => {});
+  await sc.cleanup?.(driver).catch((e) => console.error(`[${sc.id}] cleanup failed:`, e));
 
   const finding: Finding = {
     id: sc.id,

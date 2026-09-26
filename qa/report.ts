@@ -32,7 +32,13 @@ function table(t: { columns: string[]; rows: (string | number | null)[][] }) {
 }
 
 function scenarioMd(f: Finding, n: number) {
-  const obs = f.observations as { table?: { columns: string[]; rows: (string | number | null)[][] } };
+  const obs = f.observations as {
+    table?: { columns: string[]; rows: (string | number | null)[][] };
+    alsoObserved?: { rootCause: string; note: string }[];
+  };
+  const also = obs.alsoObserved?.length
+    ? `\n**Also observed (reported under its own root cause, not counted again):**\n${obs.alsoObserved.map((a) => `- \`${a.rootCause}\`: ${a.note}`).join('\n')}\n`
+    : '';
   const fallbacks = Object.entries(f.locators).filter(([, v]) => v !== 'testid');
   return `### ${n}. ${f.title}
 
@@ -55,7 +61,7 @@ ${f.steps.map((s, i) => `${i + 1}. ${s.label}${s.detail ? ` (${s.detail})` : ''}
 ${f.apiCalls.map((c) => `- t+${c.atS}s \`${c.method} ${c.path}${c.body ? ' ' + JSON.stringify(c.body) : ''}\` → ${c.status}`).join('\n')}
 
 **Result.** ${f.verdict.sub ?? f.verdict.headline}
-${obs.table ? `\n${table(obs.table)}\n` : ''}${fallbacks.length ? `\nLocator fallbacks used (test id missing): ${fallbacks.map(([k, v]) => `${k} → ${v}`).join(', ')}\n` : ''}
+${obs.table ? `\n${table(obs.table)}\n` : ''}${also}${fallbacks.length ? `\nLocator fallbacks used (test id missing): ${fallbacks.map(([k, v]) => `${k} → ${v}`).join(', ')}\n` : ''}
 _Evidence: video \`${f.evidence.video}\`, trace \`${f.evidence.trace}\` (open with \`npx playwright show-trace\`), screenshot \`${f.evidence.screenshot}\`. Run ${f.startedAt}, ${f.durationS} s, viewport ${f.env.viewport.width}×${f.env.viewport.height}, speed ${f.env.speed}×._
 `;
 }

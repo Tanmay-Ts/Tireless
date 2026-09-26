@@ -9,14 +9,14 @@
  *  - pointer-events:none and aria-hidden: elementFromPoint and getByRole ignore it;
  *  - every value is HTML-escaped (UI text can be hostile, e.g. the XSS scenario).
  */
-import type { Locator, Page } from 'playwright';
+import type { ElementHandle, Locator, Page } from 'playwright';
 import { PAGE_SHIM } from './config.ts';
 
 export type StepState = 'todo' | 'run' | 'ok' | 'fail' | 'skip';
 export type HudRow = { field: string; truth: string; ui: string; ok: boolean | null };
 export type VerdictKind = 'BUG' | 'PASS' | 'INTENDED' | 'SETUP-FAILED' | 'ERROR';
-type Box = { x: number; y: number; w: number; h: number; label: string; color: string; align: 'left' | 'right' };
-export type BoxOpts = { color?: string; align?: 'left' | 'right' };
+type Box = { x: number; y: number; w: number; h: number; label: string; color: string; align: 'left' | 'right'; below?: boolean };
+export type BoxOpts = { color?: string; align?: 'left' | 'right'; below?: boolean };
 
 export type HudState = {
   id: string;
@@ -26,18 +26,22 @@ export type HudState = {
   t0: number;
   steps: { label: string; state: StepState; detail?: string }[];
   rowsTitle: string;
+  rowsCols: [string, string, string];
   rows: HudRow[];
   note?: string;
   api: string[];
   boxes: Box[];
   countdown?: { label: string; until: number; total: number };
   verdict?: { kind: VerdictKind; headline: string; sub?: string };
+  /** Banner placement override (phone harness: beside the device instead of over the map). */
+  verdictPos?: { left: number; right: number; top: string };
+  log?: { title: string; lines: { text: string; bad?: boolean }[] };
   card: boolean;
 };
 
 export class Hud {
   s: HudState;
-  private boxTargets: { key: string; loc: Locator; label: string; color: string; align: 'left' | 'right' }[] = [];
+  private boxTargets: { key: string; loc: Locator | ElementHandle; label: string; color: string; align: 'left' | 'right'; below?: boolean }[] = [];
   private chain: Promise<void> = Promise.resolve();
 
   constructor(
@@ -49,6 +53,7 @@ export class Hud {
       t0: Date.now(),
       steps: meta.steps.map((label) => ({ label, state: 'todo' as StepState })),
       rowsTitle: 'TRUTH vs UI',
+      rowsCols: ['FIELD', 'TRUTH', 'UI'],
       rows: [],
       api: [],
       boxes: [],
@@ -64,9 +69,10 @@ export class Hud {
     return this.render();
   }
 
-  rows(rows: HudRow[], title = 'TRUTH vs UI') {
+  rows(rows: HudRow[], title = 'TRUTH vs UI', cols: [string, string, string] = ['FIELD', 'TRUTH', 'UI']) {
     this.s.rows = rows;
     this.s.rowsTitle = title;
+    this.s.rowsCols = cols;
     return this.render();
   }
 
@@ -77,7 +83,18 @@ export class Hud {
 
   api(line: string) {
     this.s.api = [...this.s.api, line].slice(-4);
+    if (this.s.log) this.s.api = this.s.api.slice(-3);
     return this.render();
+  }
+
+  /** Free-form evidence lines (e.g. every UI jump, or one line per screen size). */
+  log(title: string, lines: { text: string; bad?: boolean }[]) {
+    this.s.log = { title, lines: lines.slice(-6) };
+    return this.render();
+  }
+
+  verdictAt(pos: { left: number; right: number; top: string }) {
+    this.s.verdictPos = pos;
   }
 
   countdown(label: string, ms: number) {
@@ -99,9 +116,9 @@ export class Hud {
    * Red outline around an element; calling again with the same key updates its label in place.
    * Not rendered on its own: it shows with the next rows()/step()/render(), so boxes and table stay in sync.
    */
-  box(key: string, loc: Locator | null | undefined, label: string, opts: BoxOpts = {}) {
+  box(key: string, loc: Locator | ElementHandle | null | undefined, label: string, opts: BoxOpts = {}) {
     if (!loc) return;
-    const entry = { key, loc, label, color: opts.color ?? '#ff3b30', align: opts.align ?? 'left' };
+    const entry = { key, loc, label, color: opts.color ?? '#ff3b30', align: opts.align ?? 'left', below: opts.below };
     const i = this.boxTargets.findIndex((b) => b.key === key);
     if (i >= 0) this.boxTargets[i] = entry;
     else this.boxTargets.push(entry);
@@ -124,8 +141,8 @@ export class Hud {
       if (this.page.isClosed()) return;
       const boxes: Box[] = [];
       for (const b of this.boxTargets) {
-        const r = await b.loc.boundingBox({ timeout: 500 }).catch(() => null);
-        if (r) boxes.push({ x: r.x, y: r.y, w: r.width, h: r.height, label: b.label, color: b.color, align: b.align });
+        const r = await ('first' in b.loc ? b.loc.boundingBox({ timeout: 500 }) : b.loc.boundingBox()).catch(() => null);
+        if (r) boxes.push({ x: r.x, y: r.y, w: r.width, h: r.height, label: b.label, color: b.color, align: b.align, below: b.below });
       }
       this.s.boxes = boxes;
       await this.page.evaluate(PAGE_SHIM).catch(() => {});
@@ -183,6 +200,8 @@ function renderHud(s: HudState) {
     td.m { width: 14px; text-align: center; font-weight: 700; }
     tr.bad td { color: #ffa198; } tr.bad td.m { color: #ff7b72; } tr.good td.m { color: #3fb950; }
     .note { color: #e3b341; font-size: 11px; }
+    .lg { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #c9d1d9; }
+    .lg.fail { color: #ffa198; }
     .api { color: #79c0ff; font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .cdl { color: #e3b341; font-size: 11px; }
     .cd { height: 4px; background: #30363d; border-radius: 2px; overflow: hidden; margin-top: 3px; }
@@ -212,15 +231,16 @@ function renderHud(s: HudState) {
     .map((st, i) => `<div class="step ${st.state}"><span class="ic">${icon[st.state]}</span><span>${i + 1}. ${esc(st.label)}</span></div>${st.detail ? `<div class="d">${esc(st.detail)}</div>` : ''}`)
     .join('');
   const rows = s.rows.length
-    ? `<table><tr><th>FIELD</th><th>TRUTH</th><th>UI</th><th></th></tr>${s.rows
+    ? `<table><tr><th>${esc(s.rowsCols[0])}</th><th>${esc(s.rowsCols[1])}</th><th>${esc(s.rowsCols[2])}</th><th></th></tr>${s.rows
         .map((r) => `<tr class="${r.ok === false ? 'bad' : r.ok ? 'good' : ''}"><td>${esc(r.field)}</td><td>${esc(r.truth)}</td><td>${esc(r.ui)}</td><td class="m">${mark(r.ok)}</td></tr>`)
         .join('')}</table>`
     : '<div class="todo">waiting for first sample…</div>';
   const boxes = s.boxes
-    .map((b) => `<div class="box ${b.y < 26 ? 'below' : ''} ${b.align === 'right' || b.x + b.label.length * 7 + 12 > innerWidth ? 'rt' : ''}" style="left:${b.x - 4}px;top:${b.y - 4}px;width:${b.w + 8}px;height:${b.h + 8}px;border:3px solid ${b.color};box-shadow:0 0 14px ${b.color}"><span style="background:${b.color}">${esc(b.label)}</span></div>`)
+    .map((b) => `<div class="box ${b.y < 26 || b.below ? 'below' : ''} ${b.align === 'right' || b.x + b.label.length * 7 + 12 > innerWidth ? 'rt' : ''}" style="left:${b.x - 4}px;top:${b.y - 4}px;width:${b.w + 8}px;height:${b.h + 8}px;border:3px solid ${b.color};box-shadow:0 0 14px ${b.color}">${b.label ? `<span style="background:${b.color}">${esc(b.label)}</span>` : ''}</div>`)
     .join('');
+  const vp = s.verdictPos ? `left:${s.verdictPos.left}px;right:${s.verdictPos.right}px;top:${s.verdictPos.top};` : '';
   const verdict = s.verdict
-    ? `<div class="verdict" style="background:${vColor[s.verdict.kind]}"><span class="k">${esc(s.verdict.kind)}</span>${esc(s.id)} · ${esc(s.verdict.headline)}${s.verdict.sub ? `<small>${esc(s.verdict.sub)}</small>` : ''}</div>`
+    ? `<div class="verdict" style="${vp}background:${vColor[s.verdict.kind]}"><span class="k">${esc(s.verdict.kind)}</span>${esc(s.id)} · ${esc(s.verdict.headline)}${s.verdict.sub ? `<small>${esc(s.verdict.sub)}</small>` : ''}</div>`
     : '';
   const card = s.card
     ? `<div class="card"><div class="in"><div class="cid">${esc(s.id)} · TIRELESS HAND QA · LEVEL 1</div><h1>${esc(s.title)}</h1><blockquote>Product brief: “${esc(s.brief)}”</blockquote><div class="st">START ▸ ${esc(s.start)}</div><div class="ft">Real-time screen recording · deterministic Playwright · zero LLM calls in the test loop</div></div></div>`
@@ -234,6 +254,7 @@ function renderHud(s: HudState) {
       <div class="sec"><div class="lbl">STEPS</div>${steps}</div>
       ${s.countdown ? `<div class="sec"><div class="cdl" id="cdl">${esc(s.countdown.label)}</div><div class="cd"><i id="cdbar"></i></div></div>` : ''}
       <div class="sec"><div class="lbl">${esc(s.rowsTitle)}</div>${rows}${s.note ? `<div class="note">${esc(s.note)}</div>` : ''}</div>
+      ${s.log ? `<div class="sec"><div class="lbl">${esc(s.log.title)}</div>${s.log.lines.map((l) => `<div class="lg ${l.bad ? 'fail' : ''}">${esc(l.text)}</div>`).join('')}</div>` : ''}
       <div class="sec"><div class="lbl">API CALLS</div>${s.api.map((a) => `<div class="api">${esc(a)}</div>`).join('') || '<div class="todo">—</div>'}</div>
     </div>${verdict}${card}`;
 
