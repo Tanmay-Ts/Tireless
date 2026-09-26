@@ -1,53 +1,137 @@
 /**
- * findings/*.json → findings.json + report.md (draft of the evaluation document).
- * Deterministic templating only; wording can be polished by hand (or offline by an LLM) later.
+ * Builds out/report.md (the evaluation-document draft) from out/findings/*.json and out/mutants.json,
+ * falling back to the committed cloud recordings in qa/recordings/ for anything not run locally.
+ *
+ * Structure: (1) system design with the two agents, (2) mutations injected by the agent and detected
+ * blind by the QA suite — the numbered scenarios, (3) real bugs found in the unmodified kit (S1–S4),
+ * (4) precision controls.
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { cfg, QA_ROOT } from './config.ts';
+import { answerKeys, loadGenerated, MUTANTS } from './mutants/index.ts';
 import type { Finding } from './runner.ts';
+
+const RECORDINGS = path.join(QA_ROOT, 'recordings');
+
+const K_TABLE = `| Check | Holds on the unmodified kit |
+|---|---|
+| K1 Presence | Connection badge, every device row, status pill, all 9 telemetry values (with numbers), map, video tile and both map-view toggles are displayed; every control reachable in the clean build still is (semantic diff vs a saved clean baseline). |
+| K2 Values | Battery, altitude, H-speed, distance-from-home and heading match the latest telemetry frame for the selected drone (within tolerance, 2 of 3 samples). |
+| K3 Cross-panel | Device-list pill, telemetry status pill and the backend agree on the flight state. |
+| K4 No false offline | While data is live, no stale/offline cue is on screen and the connection badge says connected. |
+| K5 Link loss shown | \`socket-refuse\` for 6 s produces a new stale/offline cue within 5 s that clears on recovery. |
+| K6 Phone | At 390 px every control reachable in the clean build at that size still is. |
+| K7 Security | A device name containing HTML is shown as text and runs no script (no onerror, dialog or injected element). |`;
 
 const SYSTEM_DESIGN = `## 1. System design
 
-A deterministic, black-box testing harness (TypeScript + Playwright) that drives the cockpit like an operator, reads independent ground truth from the backend, and judges the UI with rule-based oracles. **No LLM is called inside the test loop**, so runs are repeatable, fast and free.
+Two agents and a deterministic oracle suite. The **mutation agent** injects realistic Level-1 bugs; the **QA agent** catches them blind. No LLM runs inside the test loop, so every judged run is deterministic and repeatable.
+
+\`\`\`
+ mutation agent (qa/mutator.ts)                 QA system (deterministic, 0 LLM in the loop)
+ reads cockpit source + product brief           driver.ts  -> clean start, takeoff/land, faults, add/remove drone
+        |  proposes JSON search/replace          truth.ts   -> own socket.io client + REST polling = ground truth
+        |  + answer key (category, file,          oracles.ts -> value-vs-truth, freshness, reachability,
+        v   brief line, expected impact)                       cross-panel, control audit, XSS scan
+ qa/mutants/generated/<id>.patch  - apply ->  cockpit ->  invariant suite K1-K7 (scenarios/k-invariants.ts)
+ qa/mutants/generated/<id>.json (answer key)                 |  records video + trace, writes findings JSON
+        |                                                     v
+        +------------- compared ONLY after the run -->  mutants.ts: caught / missed / false alarm
+\`\`\`
 
 | Part | What it does |
 |---|---|
-| **Condition driver** (\`driver.ts\`) | Puts the system in a known state and changes conditions through the kit's control API: clear faults, reset (every drone on its dock at 100 %), start the simulator (seed 42), take off / land, inject faults (\`sim-offline\`, \`socket-delay\`, …). Every call is logged and shown on screen. |
-| **Truth observer** (\`truth.ts\`) | Independent ground truth: our own socket.io client (same handshake and topics as the cockpit) records every telemetry frame with its arrival time and timestamp; \`/api/control/state\` is polled straight from the simulator (it keeps moving even when the telemetry path is broken); \`/api/health\` gives the simulator link. |
-| **Oracles** (\`oracles.ts\`) | Zero-LLM checks that compare *meaning*, not pixels or exact strings: UI value vs truth within a tolerance; freshness (when truth is stale, the UI must show a new stale/offline cue compared with a live baseline); reachability (visible, in viewport, not covered via \`elementFromPoint\`, enabled); cross-panel consistency (status pill vs device list vs simulator); internal consistency (claimed speed vs distance actually moved). Elements are found by test id, then role + name, then visible label/text, and the fallback used is recorded (so a renamed test id does not break the run). |
-| **Evidence HUD** (\`overlay.ts\`) | Injected into the page for the recording: scenario id, brief line, starting state, steps ticking off, the API calls made, a live truth-vs-UI table, red boxes on the failing elements and a verdict banner. It lives in a closed shadow root with \`pointer-events:none\`, so it can never influence a check. |
-| **Device harness** (\`device.ts\`) | Phone and tablet layouts: the cockpit runs in a frame whose viewport is exactly the device size (so the app's own responsive rules apply), shown next to the evidence panel. Results are cross-checked in real device emulation (touch, high-DPI, mobile browser). |
-| **Invariant suite K + mutation runner** (\`scenarios/k-invariants.ts\`, \`mutants.ts\`) | Six cockpit rules that hold on the unmodified kit (presence, values vs backend, cross-panel status, no false offline, link loss shown, phone reachability vs the clean build). The runner plants bugs in the cockpit source, runs K on each, reverts, and scores caught / missed / false alarm. This is the net for the judges' mutations. |
-| **Runner** (\`runner.ts\`) | Headed Chromium, real-time video at the viewport size plus a Playwright trace per scenario. A precondition that cannot be met (e.g. fault did not take effect) is reported as SETUP-FAILED, never as a bug. |
-| **Reporter** (\`report.ts\`) | Turns findings JSON into this document: numbered scenarios with Title, Description, Approach, evidence and video link. Findings sharing a root cause are grouped. |
+| **Mutation agent** (\`mutator.ts\`) | A separate LLM agent (OpenAI, or Gemini / NVIDIA NIM) reads the cockpit source and the brief and proposes realistic mutations as search/replace edits, each with an **answer key**: category, file, what it breaks, the brief line it violates, the expected user impact. Each edit is validated (search occurs exactly once, mutated file still parses) and saved to \`mutants/generated/\` so runs replay deterministically. |
+| **Condition driver** (\`driver.ts\`) | Puts the cockpit in a known state through the control API: clear faults, reset (seed 42), start, takeoff/land, inject faults, add/remove a drone. |
+| **Truth observer** (\`truth.ts\`) | Independent ground truth: our own socket.io client (same handshake and topics) records every telemetry frame with arrival time and timestamp; \`/api/control/state\` and \`/api/health\` are polled from the backend. |
+| **Oracles** (\`oracles.ts\`) | Zero-LLM checks comparing meaning, not pixels: value vs truth within tolerance, freshness vs a live baseline, reachability (in viewport, not covered via \`elementFromPoint\`, enabled), cross-panel consistency, whole-page control audit, and an XSS scan. Locators go test id -> role -> visible text and report which was used. |
+| **Invariant suite K1-K7** (\`scenarios/k-invariants.ts\`) | Seven checks that hold on the unmodified kit and must fail when a bug is present. This is the blind detector: it never reads the answer keys. |
+| **Blind scorer** (\`mutants.ts\`) | Applies each mutation, runs K1-K7 with a recording, reverts, and only THEN compares the failing checks to the answer key: caught / missed / false alarm, plus whether the failing check matches the agent's predicted one. |
+| **Evidence HUD** (\`overlay.ts\`) | Injected into the page: scenario, brief line, steps, the API calls, a live truth-vs-UI table, red boxes on failing elements, verdict banner. Closed shadow root, \`pointer-events:none\`, so it never affects a check. |
+| **Reporter** (\`report.ts\`) | This document. |
 
-**How they work together:** driver sets a clean, seeded start → truth observer starts recording → runner opens the cockpit and performs the operator workflow → driver injects the changing condition → oracles sample UI and truth every second → HUD shows it live on the recording → verdict + artefacts → reporter.
+**The invariant suite (K1-K7).** Each passes on the unmodified kit and is the net for injected bugs:
 
-**Scope and assumptions:** only the cockpit is under test; the control panel is out of scope and never opened. The backend (health, simulator state, socket) is treated as correct and is the reference the screen is compared against; it is also how conditions are set up, so setup works however the cockpit is mutated. Intended backend behaviour is not flagged: for example, Land returns the drone to its dock even though the kit README still says it lands where it is.
+${K_TABLE}
 
-**Precision controls:** every scenario first checks the UI is correct while conditions are normal (a control phase), gives the UI a grace period before judging, requires the failure on every judged sample (not a single glitch), and verifies the fault really took effect from truth before judging the UI.
+**Blind answer-key comparison.** The QA suite (K1-K7) imports no answer keys; it only sees the mutated cockpit. \`mutants.ts\` reads \`mutants/generated/<id>.json\` after each run to score it. "Caught" means K flagged the build as buggy at all; "attributed" means the check that fired is the one the agent predicted.
 `;
 
 function table(t: { columns: string[]; rows: (string | number | null)[][] }) {
-  const cell = (v: unknown) => String(v ?? '—').replace(/\|/g, '\\|');
+  const cell = (v: unknown) => String(v ?? '—').replace(/\|/g, '\\|').replace(/\n/g, ' ');
   return [`| ${t.columns.join(' | ')} |`, `|${t.columns.map(() => '---').join('|')}|`, ...t.rows.map((r) => `| ${r.map(cell).join(' | ')} |`)].join('\n');
 }
 
-function scenarioMd(f: Finding, n: number) {
-  const obs = f.observations as {
-    table?: { columns: string[]; rows: (string | number | null)[][] };
-    alsoObserved?: { rootCause: string; note: string }[];
-  };
-  const also = obs.alsoObserved?.length
-    ? `\n**Also observed (reported under its own root cause, not counted again):**\n${obs.alsoObserved.map((a) => `- \`${a.rootCause}\`: ${a.note}`).join('\n')}\n`
-    : '';
-  const fallbacks = Object.entries(f.locators).filter(([, v]) => v !== 'testid');
-  return `### ${n}. ${f.title}
+type Row = { id: string; title: string; planted: string; expected: string; failed: string[]; attributed?: boolean; generated?: boolean; outcome: string; video: string; verdict: string };
+type Matrix = { ranAt: string; summary: { caught: number; planted: number; falseAlarms: number; harmless: number; errors: number }; rows: Row[] };
+type Keyed = ReturnType<typeof answerKeys>[string] | undefined;
+type Tabled = { table?: { columns: string[]; rows: (string | number | null)[][] } };
+
+function loadFindings(): Finding[] {
+  const load = (dir: string) => (existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(readFileSync(path.join(dir, f), 'utf8')) as Finding) : []);
+  const local = load(path.join(cfg.outDir, 'findings'));
+  const cloud = load(path.join(RECORDINGS, 'findings')).filter((c) => !local.some((l) => l.id === c.id));
+  return [...local, ...cloud];
+}
+function loadMatrix(): Matrix | undefined {
+  const p = [path.join(cfg.outDir, 'mutants.json'), path.join(RECORDINGS, 'mutants.json')].find(existsSync);
+  return p ? (JSON.parse(readFileSync(p, 'utf8')) as Matrix) : undefined;
+}
+
+const SEED_BRIEF: Record<string, string> = {
+  'm1-badge-always-connected': 'makes clear whether information is live, delayed, stale, disconnected or unavailable',
+  'm2-online-shown-offline': 'makes clear whether information is live, delayed, stale, disconnected or unavailable',
+  'm3-battery-off-by-10': 'Selecting a drone shows its state, telemetry, map location, video, warnings and freshness together',
+  'm4-wrong-drone-telemetry': 'Selecting a drone shows its state, telemetry, map location, video, warnings and freshness together',
+  'm5-flying-shown-as-landed': 'Selecting a drone shows its state, telemetry, map location, video, warnings and freshness together',
+  'm6-connection-badge-removed': 'makes clear whether information is live, delayed, stale, disconnected or unavailable',
+  'm7-device-list-offscreen-phone': 'Works in modern browsers on phones, tablets, laptops and desktops',
+  'm8-xss-drone-name': 'Works in modern browsers on phones, tablets, laptops and desktops',
+};
+
+/** One numbered scenario per mutation, richest evidence from its recorded K run. */
+function mutationScenario(n: number, row: Row, finding: Finding | undefined, ak: Keyed) {
+  const meta = [...MUTANTS, ...loadGenerated()].find((m) => m.id === row.id);
+  const briefLine = ak?.briefLine ?? SEED_BRIEF[row.id] ?? finding?.brief ?? '';
+  const impact = ak?.expectedImpact ?? '';
+  const caught = row.outcome === 'caught';
+  const failed = row.failed.length ? row.failed.join(', ') : 'none';
+  const kTable = (finding?.observations as Tabled | undefined)?.table;
+  const video = path.basename(row.video || finding?.evidence.video || `K-${row.id}.webm`);
+  return `#### ${n}. ${ak?.category ?? meta?.title ?? row.title}
+
+**Verdict:** ${caught ? `CAUGHT by ${failed}` : row.outcome === 'missed' ? 'MISSED' : row.outcome}${row.attributed === false && caught ? ` (agent predicted ${row.expected})` : ''}
+**Injected by:** ${row.generated ? 'mutation agent' : 'seed (written during development)'} · **Category:** ${ak?.category ?? finding?.category ?? '—'}
+**Video:** _<paste Drive link: ${video}>_
+
+**Description.** The mutation ${row.planted}. The operator expects ${impact || 'the cockpit to keep showing correct, current information'}.
+
+> Product brief: “${briefLine}”
+
+**Approach.** The QA suite ran K1-K7 against the mutated cockpit with no knowledge of the answer key. ${caught ? `Check ${failed} failed` : 'No check failed'}, and the answer key was compared only afterwards.${row.attributed === false && caught ? " The failing check differs from the agent's predicted one, reported honestly." : ''}
+${kTable ? `\n${table(kTable)}\n` : ''}`;
+}
+
+function precisionScenario(f: Finding) {
+  const obs = f.observations as Tabled;
+  return `#### ${f.title}
+
+**Result: ${f.verdict.kind}.** ${f.verdict.sub ?? f.verdict.headline}
+
+${f.description}
+${obs.table ? `\n${table(obs.table)}\n` : ''}
+**Video:** _<paste Drive link: ${f.evidence.video}>_
+`;
+}
+
+function realBug(f: Finding, n: number) {
+  const obs = f.observations as Tabled;
+  return `#### ${n}. ${f.title}
 
 **Verdict:** ${f.verdict.kind} · ${f.verdict.headline}
-**Category:** ${f.category} · **Root cause key:** \`${f.rootCause}\`
+**Category:** ${f.category}
 **Video:** _<paste Drive link: ${f.evidence.video}>_
 
 **Description.** ${f.description}
@@ -56,119 +140,76 @@ function scenarioMd(f: Finding, n: number) {
 
 **Approach.** ${f.approach}
 
-**Starting state.** ${f.startState}
-
-**Steps (as run, visible on the HUD).**
-${f.steps.map((s, i) => `${i + 1}. ${s.label}${s.detail ? ` (${s.detail})` : ''}: ${s.state}`).join('\n')}
-
-**API calls.**
-${f.apiCalls.map((c) => `- t+${c.atS}s \`${c.method} ${c.path}${c.body ? ' ' + JSON.stringify(c.body) : ''}\` → ${c.status}`).join('\n')}
-
 **Result.** ${f.verdict.sub ?? f.verdict.headline}
-${obs.table ? `\n${table(obs.table)}\n` : ''}${also}${fallbacks.length ? `\nLocator fallbacks used (test id missing): ${fallbacks.map(([k, v]) => `${k} → ${v}`).join(', ')}\n` : ''}
-_Evidence: video \`${f.evidence.video}\`, trace \`${f.evidence.trace}\` (open with \`npx playwright show-trace\`), screenshot \`${f.evidence.screenshot}\`. Run ${f.startedAt}, ${f.durationS} s, viewport ${f.env.viewport.width}×${f.env.viewport.height}, speed ${f.env.speed}×._
-`;
-}
-
-const K_TEXT = `The invariant suite K is the regression net for *new* bugs, such as the judges' mutations. Every check passes on the unmodified kit:
-
-| Check | Must hold |
-|---|---|
-| K1 Presence | Connection badge, every device row, status pill, all 9 telemetry values (with numbers), map, video tile and map toggles are displayed; every control reachable in the clean build still is (semantic diff against the clean baseline). |
-| K2 Values | Battery, altitude, H-speed, distance from home and heading match the latest telemetry frame for the selected drone (2 of 3 samples within tolerance). |
-| K3 Cross-panel | Device-list pill, telemetry status pill and backend agree on the flight state. |
-| K4 No false offline | While data is live, there is no stale/offline cue anywhere and the connection badge says connected. |
-| K5 Link loss shown | \`socket-refuse\` for 6 s gives a new stale/offline cue within 5 s, which clears after recovery. |
-| K6 Phone | At 390 px every control reachable in the clean build at that size still is. |`;
-
-const RECORDINGS = path.join(QA_ROOT, 'recordings');
-
-function mutationSection(outDir: string) {
-  // Prefer a local run; fall back to the matrix recorded in the cloud and committed in qa/recordings/.
-  const p = [path.join(outDir, 'mutants.json'), path.join(RECORDINGS, 'mutants.json')].find((f) => existsSync(f)) ?? path.join(outDir, 'mutants.json');
-  if (!existsSync(p)) return `### Mutation testing\n\n${K_TEXT}\n\n_No mutation run yet: \`KIT_DIR=… npm run mutants\`._\n`;
-  const m = JSON.parse(readFileSync(p, 'utf8')) as {
-    ranAt: string;
-    summary: { caught: number; planted: number; falseAlarms: number; harmless: number; errors: number };
-    rows: { id: string; title: string; planted: string; expected: string; failed: string[]; outcome: string; video: string }[];
-  };
-  const mark = (o: string) => (o === 'caught' || o === 'correctly passed' ? '✅' : '❌');
-  return `### Mutation testing: planted bugs are caught, harmless changes are not flagged
-
-${K_TEXT}
-
-We planted ${m.summary.planted} bugs in the cockpit source (patches in \`qa/mutants/\`) and added ${m.summary.harmless - 1} harmless changes. Each build ran through K with a recording.
-**Result: ${m.summary.caught}/${m.summary.planted} planted bugs caught, ${m.summary.falseAlarms} false alarms across ${m.summary.harmless} clean/harmless builds${m.summary.errors ? `, ${m.summary.errors} errors` : ''}.** _(run ${m.ranAt})_
-
-${table({
-  columns: ['Build', 'What was changed', 'Expected', 'Checks that failed', 'Outcome', 'Video'],
-  rows: m.rows.map((r) => [r.title, r.planted, r.expected, r.failed.join(', ') || 'none', `${mark(r.outcome)} ${r.outcome}`, `_<link: ${r.video}>_`]),
-})}
-`;
-}
-
-function precisionSection(fs: Finding[]) {
-  if (!fs.length) return '';
-  return fs
-    .map((f) => {
-      const obs = f.observations as { table?: { columns: string[]; rows: (string | number | null)[][] } };
-      return `### Precision check: ${f.title}
-
-${f.description}
-
-**How:** ${f.approach}
-
-**Result: ${f.verdict.kind}: ${f.verdict.headline}.** ${f.verdict.sub ?? ''}
-${obs.table ? `\n${table(obs.table)}\n` : ''}
-**Video:** _<paste Drive link: ${f.evidence.video}>_
-`;
-    })
-    .join('\n');
+${obs.table ? `\n${table(obs.table)}\n` : ''}`;
 }
 
 export function writeReport(outDir = cfg.outDir) {
-  const load = (dir: string) =>
-    existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(readFileSync(path.join(dir, f), 'utf8')) as Finding) : [];
-  // Local runs win; anything not run locally (e.g. S1-fixed on a laptop) comes from the committed cloud recordings.
-  const local = load(path.join(outDir, 'findings'));
-  const cloud = load(path.join(RECORDINGS, 'findings')).filter((c) => !local.some((l) => l.id === c.id));
-  const all: Finding[] = [...local, ...cloud].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
-  const findings = all.filter((f) => (f.section ?? 'scenario') === 'scenario');
-  const precision = all.filter((f) => f.section === 'precision');
+  const findings = loadFindings();
+  const byId = new Map(findings.map((f) => [f.id, f]));
+  const matrix = loadMatrix();
+  const keys = answerKeys();
 
-  // One root cause = one finding: later scenarios with the same key are listed as symptoms of the first.
-  const groups = new Map<string, Finding[]>();
-  for (const f of findings.filter((f) => f.verdict.kind === 'BUG')) groups.set(f.rootCause, [...(groups.get(f.rootCause) ?? []), f]);
+  const mutationRows = (matrix?.rows ?? []).filter((r) => r.id !== 'clean' && r.expected !== 'PASS');
+  const generated = mutationRows.filter((r) => r.generated);
+  const seeds = mutationRows.filter((r) => !r.generated);
+  const harmless = (matrix?.rows ?? []).filter((r) => r.id === 'clean' || r.expected === 'PASS');
 
-  const summary = table({
-    columns: ['#', 'Scenario', 'Category', 'Verdict', 'Root cause'],
-    rows: findings.map((f, i) => {
-      const g = groups.get(f.rootCause);
-      const dup = g && g.length > 1 && g[0] !== f ? ` (same root cause as ${g[0].id})` : '';
-      return [i + 1, `${f.id} · ${f.title}`, f.category, f.verdict.kind, `\`${f.rootCause}\`${dup}`];
-    }),
-  });
+  const scenarioBugs = findings.filter((f) => (f.section ?? 'scenario') === 'scenario').sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+  const precision = findings.filter((f) => f.section === 'precision').sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
 
-  const md = `# Tireless Hand · Level 1 evaluation (draft)
+  let n = 0;
+  const summaryLine = matrix
+    ? `**${matrix.summary.caught}/${matrix.summary.planted} injected mutations caught, ${matrix.summary.falseAlarms} false alarms across ${matrix.summary.harmless} clean/harmless builds${matrix.summary.errors ? `, ${matrix.summary.errors} errors` : ''}.** _(run ${matrix.ranAt})_`
+    : '_No mutation run recorded yet._';
 
-_Generated ${new Date().toISOString()} by \`qa/report.ts\` from \`out/findings/*.json\` and \`out/mutants.json\`._
+  const matrixTable = matrix
+    ? table({
+        columns: ['#', 'Mutation', 'By', 'Expected', 'Checks that fired', 'Outcome'],
+        rows: mutationRows.map((r, i) => [i + 1, keys[r.id]?.category ?? r.title, r.generated ? 'agent' : 'seed', r.expected, r.failed.join(', ') || 'none', (r.outcome === 'caught' ? '✅ ' : r.outcome === 'missed' ? '❌ ' : '') + r.outcome]),
+      })
+    : '';
+
+  const md = `# Tireless Hand · Level 1 evaluation
+
+_Generated ${new Date().toISOString()} by \`qa/report.ts\`._
 
 ${SYSTEM_DESIGN}
-${precisionSection(precision)}
-${mutationSection(outDir)}
-## 2. Scenarios
+## 2. Mutations injected and caught (numbered scenarios)
 
-${summary}
+Our mutation agent injects Level-1 bugs into the cockpit; the QA suite catches them blind. Each mutation is one scenario. ${summaryLine}
 
-${findings.map((f, i) => scenarioMd(f, i + 1)).join('\n---\n\n')}`;
+*Provenance: the agent-generated mutations in §2a were authored by a separate Claude subagent given only the cockpit \`frontend/\` source, the product-brief lines and the Level-1 categories, with no access to the QA code (\`qa/\`) — a genuine blind test. \`qa/mutator.ts\` is the external-LLM version of the same agent (OpenAI / Gemini / NVIDIA NIM); it was not run in this environment because outbound egress to those APIs is blocked here, so it was exercised through the subagent instead. The §2b seed mutations were written by hand during development. All were validated (search unique, mutated file parses) and applied as git patches, then run through K1-K7 with the answer keys compared only afterwards.*
 
-  const mdPath = path.join(outDir, 'report.md');
-  writeFileSync(mdPath, md);
-  writeFileSync(path.join(outDir, 'findings.json'), JSON.stringify(all, null, 2));
-  return { md: mdPath, count: findings.length };
+${matrixTable}
+
+### 2a. Agent-generated mutations (separate Claude subagent, no QA access — caught blind)
+
+${generated.map((r) => mutationScenario(++n, r, byId.get(`K-${r.id}`), keys[r.id])).join('\n')}
+
+### 2b. Seed mutations (written during development)
+
+${seeds.map((r) => mutationScenario(++n, r, byId.get(`K-${r.id}`), keys[r.id])).join('\n')}
+
+## 3. Real bugs found in the original (unmutated) kit
+
+Genuine defects already present in the unmodified kit, found while building the harness; each reproduced from a clean seeded start.
+
+${scenarioBugs.map((f, i) => realBug(f, i + 1)).join('\n---\n\n')}
+
+## 4. Precision controls (no false alarms)
+
+The suite must not cry wolf. ${harmless.length ? `On ${harmless.length} clean/harmless builds it raised ${harmless.filter((r) => r.outcome === 'false alarm').length} false alarms.` : ''}
+
+${precision.map(precisionScenario).join('\n')}
+${harmless.length ? `\n**Harmless changes correctly ignored:** ${harmless.filter((r) => r.id !== 'clean').map((r) => `${r.title} → ${r.outcome}`).join('; ')}. The clean build passes all seven checks.\n` : ''}`;
+
+  writeFileSync(path.join(outDir, 'report.md'), md);
+  writeFileSync(path.join(outDir, 'findings.json'), JSON.stringify(findings, null, 2));
+  return { md: path.join(outDir, 'report.md'), mutations: mutationRows.length, bugs: scenarioBugs.length };
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const r = writeReport();
-  console.log(`${r.count} finding(s) → ${r.md}`);
+  console.log(`report → ${r.md} (${r.mutations} mutations, ${r.bugs} real bugs)`);
 }

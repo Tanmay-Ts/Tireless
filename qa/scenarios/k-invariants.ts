@@ -9,6 +9,7 @@
  *  K4 Live data is not shown as stale/offline (no stale cue, connection badge says connected).
  *  K5 Link loss is shown: socket-refuse 6 s → a new stale/offline cue within 5 s, gone again after recovery.
  *  K6 Phone (iPhone 13): every control reachable in the clean build at that size still is.
+ *  K7 Security: a device name containing HTML is shown as text and executes no script (no onerror, dialog or injected element).
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -32,6 +33,8 @@ import {
   type Indicator,
   type Located,
   type Target,
+  xssPayload,
+  xssScan,
 } from '../oracles.ts';
 import type { Scenario, Verdict } from '../runner.ts';
 import { cleanStartWithTruth, DRONE, fmtS, selectDrone, takeoffToCruise, withTitleCard } from './common.ts';
@@ -43,6 +46,7 @@ export const K_CHECKS = [
   { id: 'K4', label: 'Live data not shown as offline' },
   { id: 'K5', label: 'Link loss shown, then recovers' },
   { id: 'K6', label: 'Phone 390 px: controls still reachable' },
+  { id: 'K7', label: 'Device name rendered as text, no script' },
 ] as const;
 
 const BASELINE = path.join(QA_ROOT, 'baseline', 'clean-invariants.json');
@@ -69,10 +73,12 @@ export function makeK(m: Mutant): Scenario {
     startState: `${m.id === 'clean' ? 'unmodified kit' : `planted bug: ${m.planted}`} · ${expectText} · faults cleared · sim reset · ${cfg.speed}× · SIM_SEED ${cfg.seed}`,
     steps: ['Clean start, select + take off Drone 1', ...K_CHECKS.map((c) => `${c.id} ${c.label}`)],
     description: `Mutation run "${m.id}": ${m.planted}. ${expectText}.`,
-    approach: 'Runs the six cockpit invariants K1–K6 (see system design). Each passes on the unmodified kit; the mutant runner checks that planted bugs fail the expected invariant and harmless changes pass.',
+    approach: 'Runs the seven cockpit invariants K1–K7 (see system design). Each passes on the unmodified kit; the mutant runner checks that planted bugs fail the expected invariant and harmless changes pass.',
 
     async run(ctx) {
       const { page, hud, driver, truth, step, obs } = ctx;
+      let dialogs = 0;
+      page.on('dialog', (d) => { dialogs++; void d.dismiss(); }); // an alert()-style payload firing is itself a failure
       const results: Record<string, Result> = {};
       const baseline: Baseline | undefined = m.id !== 'clean' && existsSync(BASELINE) ? JSON.parse(readFileSync(BASELINE, 'utf8')) : undefined;
       const fresh: Partial<Baseline> = {};
@@ -232,6 +238,38 @@ export function makeK(m: Mutant): Scenario {
         if (!baseline && m.id !== 'clean') return record(6, 'K6', { ok: null, summary: 'no clean baseline yet: run the clean kit first' });
         const reg = auditRegressions(audit, baseline?.phone ?? fresh.phone).map((r) => `${r.label}: ${r.reason}`);
         await record(6, 'K6', { ok: reg.length === 0, summary: reg.length ? reg[0] + (reg.length > 1 ? ` (+${reg.length - 1})` : '') : `${audit.length} controls as reachable as in the clean build`, details: reg });
+      });
+
+
+      // K7 — security: device name with HTML must render as text, run nothing
+      await step(7, async () => {
+        const { marker, name } = xssPayload();
+        let added: string | undefined;
+        try {
+          const res = await driver.addDrone(name);
+          added = res.drone.id;
+          // Back to the desktop cockpit (K6 left a phone iframe mounted) and select the new drone.
+          await page.goto(cfg.cockpitUrl, { waitUntil: 'domcontentloaded' });
+          await driver.waitFor(async () => !!(await page.$(`[data-testid="device-row-${added}"]`)), 15000, 'malicious drone row rendered');
+          await page.click(`[data-testid="device-row-${added}"]`).catch(() => {});
+          await sleep(1200);
+          const r = await xssScan(page, marker, dialogs);
+          obs.xss = { payload: name, ...r };
+          const bad: string[] = [];
+          if (r.fired) bad.push(`onerror ran ${r.fired}×`);
+          if (r.dialogs) bad.push(`${r.dialogs} dialog(s)`);
+          if (r.injectedImg) bad.push('injected <img> element');
+          if (r.injectedEl) bad.push('injected element from name');
+          const ok = bad.length === 0 && r.markerAsText;
+          hud.verdictAt({ left: 312, right: 434, top: '34%' });
+          await record(7, 'K7', {
+            ok,
+            summary: bad.length ? `HTML in name executed: ${bad.join(', ')}` : r.markerAsText ? 'name shown as text; no script ran' : 'name not visibly rendered',
+            details: bad,
+          });
+        } finally {
+          if (added) await driver.removeDrone(added).catch(() => {});
+        }
       });
 
       if (m.id === 'clean') {

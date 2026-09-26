@@ -126,6 +126,15 @@ export class Driver {
     return res.faults;
   }
 
+  /** POST /api/control/drones {name?, latitude?, longitude?} → { drone, dock }. */
+  async addDrone(name?: string): Promise<{ drone: { id: string; name: string; dockId?: string }; dock: { id: string } }> {
+    return this.must('POST', '/api/control/drones', name === undefined ? {} : { name });
+  }
+
+  removeDrone(id: string) {
+    return this.must('DELETE', `/api/control/drones/${encodeURIComponent(id)}`);
+  }
+
   clearFaults() {
     return this.must('DELETE', '/api/control/fault');
   }

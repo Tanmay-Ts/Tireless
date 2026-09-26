@@ -1,0 +1,12 @@
+diff --git a/frontend/src/components/TelemetryPanel.tsx b/frontend/src/components/TelemetryPanel.tsx
+index 55aa842..72507ca 100644
+--- a/frontend/src/components/TelemetryPanel.tsx
++++ b/frontend/src/components/TelemetryPanel.tsx
+@@ -27,7 +27,6 @@ export function TelemetryPanel() {
+   const status = drone?.flight_status?.flight_status ?? 'unknown';
+ 
+   const rows: Array<{ label: string; value: string; testid: string }> = [
+-    { label: 'Battery', value: fmt(drone?.battery?.percent, '%', 0), testid: TESTIDS.telemetryBattery },
+     { label: 'Altitude RLT', value: fmt(pos?.position.height, 'm'), testid: TESTIDS.telemetryAltRlt },
+     { label: 'Altitude AGL', value: fmt(pos?.position.height, 'm'), testid: TESTIDS.telemetryAltAgl },
+     { label: 'Altitude ASL', value: fmt(pos?.position.elevation, 'm'), testid: TESTIDS.telemetryAltAsl },

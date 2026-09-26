@@ -355,6 +355,34 @@ export function auditRegressions(now: AuditRow[], cleanBaseline: Pick<AuditRow, 
 // Time series of what the UI displayed: a MutationObserver records every text change of an element
 // with its wall-clock time (same clock as the truth recorder), so no update between samples is missed.
 // ---------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------
+// Basic security: a device name is data, not markup. If the cockpit renders it with innerHTML,
+// the payload's onerror runs. The probe sets window.__xss and injects known elements; a safe
+// (React-escaped) cockpit shows the whole string as visible text and runs nothing.
+// ---------------------------------------------------------------------------------------------
+export function xssPayload() {
+  const marker = `XSSPROBE${Math.random().toString(36).slice(2, 8)}`;
+  // onerror fires only if this becomes a real <img>; the <i> is only an element if HTML was parsed.
+  const name = `<img src=x onerror="window.__xss=(window.__xss||0)+1"><i data-xss>${marker}</i>`;
+  return { marker, name };
+}
+
+export type XssResult = { fired: number; injectedImg: number; injectedEl: number; markerAsText: boolean; rawTagAsText: boolean; dialogs: number };
+
+export async function xssScan(scope: Scope, marker: string, dialogs: number): Promise<XssResult> {
+  const r = await scope.evaluate(
+    ({ marker }) => {
+      const inApp = (el: Element) => !el.closest('[data-qa-overlay]');
+      const imgs = Array.from(document.querySelectorAll('img')).filter((i) => inApp(i) && i.getAttribute('src') === 'x');
+      const els = Array.from(document.querySelectorAll('i[data-xss]')).filter(inApp);
+      const text = (document.body as HTMLElement).innerText;
+      return { fired: (window as any).__xss || 0, injectedImg: imgs.length, injectedEl: els.length, markerAsText: text.includes(marker), rawTagAsText: text.includes('<img') };
+    },
+    { marker },
+  );
+  return { ...r, dialogs };
+}
+
 export async function watchText(loc: Locator, key: string) {
   await loc.evaluate((el, k) => {
     const w = window as any;

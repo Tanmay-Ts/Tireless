@@ -1,0 +1,11 @@
+{
+  "id": "gen-03-battery-row-removed",
+  "category": "element removed",
+  "file": "frontend/src/components/TelemetryPanel.tsx",
+  "search": "    { label: 'Battery', value: fmt(drone?.battery?.percent, '%', 0), testid: TESTIDS.telemetryBattery },\n",
+  "replace": "",
+  "breaks": "Battery telemetry row is deleted from the panel.",
+  "briefLine": "Selecting a drone shows its state, telemetry, map location, video, warnings and freshness together",
+  "expectedImpact": "Operator cannot see battery percentage at all; no low-battery awareness before RTL.",
+  "expectCheck": "K1"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "gen-05-panel-title-innerhtml",
+  "category": "basic security (raw HTML)",
+  "file": "frontend/src/components/TelemetryPanel.tsx",
+  "search": "        <span>Drone Telemetry{device ? ` \u00b7 ${device.name}` : ''}</span>",
+  "replace": "        <span dangerouslySetInnerHTML={{ __html: `Drone Telemetry${device ? ` \u00b7 ${device.name}` : ''}` }} />",
+  "breaks": "Panel title renders the selected drone's name with innerHTML, so HTML in a name executes.",
+  "briefLine": "Works in modern browsers on phones, tablets, laptops and desktops",
+  "expectedImpact": "A drone named with an <img onerror> payload runs script in the operator's cockpit.",
+  "expectCheck": "K7"
+}

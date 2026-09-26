@@ -3,7 +3,40 @@
  * mutations, plus harmless changes it must let through. Each patch is a `git diff` of the kit repo.
  * `expect` = the K checks that must fail ([] = must PASS: a failure there would be a false alarm).
  */
-export type Mutant = { id: string; title: string; planted: string; expect: string[]; patch?: string };
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+export type Mutant = { id: string; title: string; planted: string; expect: string[]; patch?: string; generated?: boolean };
+
+/** Answer key produced by the mutation agent (qa/mutator.ts). The QA suite never imports this at check time. */
+export type AnswerKey = { id: string; category: string; file: string; search: string; replace: string; breaks: string; briefLine: string; expectedImpact: string; expectCheck: string };
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+
+/** Agent-generated mutations from mutants/generated/*.json, replayed deterministically from their patches. */
+export function loadGenerated(): Mutant[] {
+  const dir = path.join(HERE, 'generated');
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.json'))
+    .sort()
+    .map((f) => {
+      const g = JSON.parse(readFileSync(path.join(dir, f), 'utf8')) as AnswerKey;
+      return { id: g.id, title: g.category, planted: `${g.breaks} [${g.file.replace('frontend/src/', '')}]`, expect: [g.expectCheck], patch: `generated/${g.id}.patch`, generated: true };
+    });
+}
+
+export function answerKeys(): Record<string, AnswerKey> {
+  const dir = path.join(HERE, 'generated');
+  if (!existsSync(dir)) return {};
+  return Object.fromEntries(
+    readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => {
+      const g = JSON.parse(readFileSync(path.join(dir, f), 'utf8')) as AnswerKey;
+      return [g.id, g];
+    }),
+  );
+}
 
 export const MUTANTS: Mutant[] = [
   { id: 'clean', title: 'Unmodified kit', planted: 'nothing (records the clean baseline)', expect: [] },
@@ -38,6 +71,12 @@ export const MUTANTS: Mutant[] = [
     title: 'Device list pushed off-screen on phones',
     planted: 'styles.css (< 800 px): side panel translateX(-110vw)',
     expect: ['K6'],
+  },
+  {
+    id: 'm8-xss-drone-name',
+    title: 'Drone name rendered as raw HTML (stored XSS)',
+    planted: 'DeviceList.tsx: renders drone.name with dangerouslySetInnerHTML instead of as text',
+    expect: ['K7'],
   },
   {
     id: 'h1-testids-renamed',

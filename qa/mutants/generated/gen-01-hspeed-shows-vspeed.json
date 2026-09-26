@@ -1,0 +1,11 @@
+{
+  "id": "gen-01-hspeed-shows-vspeed",
+  "category": "wrong value",
+  "file": "frontend/src/components/TelemetryPanel.tsx",
+  "search": "{ label: 'H-Speed', value: fmt(pos?.speed.horizontal, 'm/s'), testid: TESTIDS.telemetryHSpeed },",
+  "replace": "{ label: 'H-Speed', value: fmt(pos?.speed.vertical, 'm/s'), testid: TESTIDS.telemetryHSpeed },",
+  "breaks": "Horizontal-speed field is wired to the vertical-speed value, so a cruising drone reads ~0 m/s.",
+  "briefLine": "Selecting a drone shows its state, telemetry, map location, video, warnings and freshness together",
+  "expectedImpact": "Operator sees H-Speed 0.0 m/s while the drone is flying at 10 m/s; wrong situational awareness.",
+  "expectCheck": "K2"
+}

@@ -1,0 +1,13 @@
+diff --git a/frontend/src/components/DeviceList.tsx b/frontend/src/components/DeviceList.tsx
+index b9c9c13..9628cd0 100644
+--- a/frontend/src/components/DeviceList.tsx
++++ b/frontend/src/components/DeviceList.tsx
+@@ -33,7 +33,7 @@ export function DeviceList() {
+               }}
+             >
+               <div className="device-main">
+-                <span className="device-name">{drone.name}</span>
++                <span className="device-name" dangerouslySetInnerHTML={{ __html: drone.name }} />
+                 {dock && <span className="device-sub">{dock.name}</span>}
+               </div>
+               <div className="device-pills">

@@ -1,0 +1,13 @@
+diff --git a/frontend/src/components/TelemetryPanel.tsx b/frontend/src/components/TelemetryPanel.tsx
+index 55aa842..66e4fe4 100644
+--- a/frontend/src/components/TelemetryPanel.tsx
++++ b/frontend/src/components/TelemetryPanel.tsx
+@@ -31,7 +31,7 @@ export function TelemetryPanel() {
+     { label: 'Altitude RLT', value: fmt(pos?.position.height, 'm'), testid: TESTIDS.telemetryAltRlt },
+     { label: 'Altitude AGL', value: fmt(pos?.position.height, 'm'), testid: TESTIDS.telemetryAltAgl },
+     { label: 'Altitude ASL', value: fmt(pos?.position.elevation, 'm'), testid: TESTIDS.telemetryAltAsl },
+-    { label: 'H-Speed', value: fmt(pos?.speed.horizontal, 'm/s'), testid: TESTIDS.telemetryHSpeed },
++    { label: 'H-Speed', value: fmt(pos?.speed.vertical, 'm/s'), testid: TESTIDS.telemetryHSpeed },
+     { label: 'V-Speed', value: fmt(pos?.speed.vertical, 'm/s'), testid: TESTIDS.telemetryVSpeed },
+     { label: 'Heading', value: fmt(drone?.attitude?.yaw, '°', 0), testid: TESTIDS.telemetryHeading },
+     {
