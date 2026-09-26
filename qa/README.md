@@ -6,6 +6,13 @@ Playwright drives the cockpit like an operator. Ground truth comes from the kit'
 rule-based oracles judge the UI. **No LLM calls happen inside the test loop.** Every scenario records a
 **real-time** video with an evidence HUD burned in, plus a Playwright trace.
 
+## Scope and assumptions
+
+- **Only the cockpit is under test** (`:4010`, or `:5173` in npm mode). The control panel (`:4000/dashboard`) is out of scope, as confirmed by the organizers. The harness never opens or clicks it.
+- **The backend is correct and is the reference.** `/api/health`, `/api/control/state` and our own socket client are ground truth. When the cockpit disagrees with them, that is a cockpit bug.
+- **Conditions are set through the control API** (reset, start, takeoff, faults), as the kit's AGENTS.md recommends for scripting. This keeps working however the cockpit is mutated.
+- **Intended backend behaviour is never flagged.** For example, Land returns the drone to its dock (latest kit commit) even though the kit README still says it lands where it is. The oracles follow the backend, not the docs.
+
 ## Run it
 
 ```bash

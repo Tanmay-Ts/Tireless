@@ -23,6 +23,8 @@ A deterministic, black-box testing harness (TypeScript + Playwright) that drives
 
 **How they work together:** driver sets a clean, seeded start → truth observer starts recording → runner opens the cockpit and performs the operator workflow → driver injects the changing condition → oracles sample UI and truth every second → HUD shows it live on the recording → verdict + artefacts → reporter.
 
+**Scope and assumptions:** only the cockpit is under test; the control panel is out of scope and never opened. The backend (health, simulator state, socket) is treated as correct and is the reference the screen is compared against; it is also how conditions are set up, so setup works however the cockpit is mutated. Intended backend behaviour is not flagged: for example, Land returns the drone to its dock even though the kit README still says it lands where it is.
+
 **Precision controls:** every scenario first checks the UI is correct while conditions are normal (a control phase), gives the UI a grace period before judging, requires the failure on every judged sample (not a single glitch), and verifies the fault really took effect from truth before judging the UI.
 `;
 
