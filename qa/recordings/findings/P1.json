@@ -1,0 +1,182 @@
+{
+  "id": "P1",
+  "title": "Land returns the drone to its dock: intended, not flagged",
+  "category": "Precision · Intended behaviour vs outdated docs",
+  "brief": "Selecting a drone shows its state, telemetry, map location, video, warnings and freshness together",
+  "rootCause": "intended-return-to-dock",
+  "section": "precision",
+  "description": "Precision check, not a numbered finding. The kit README says Land brings the drone \"down where it is\", but the backend now flies it back to its dock first (latest kit commit: \"return-to-dock landing\"). A tester that trusts the README would raise a false alarm. We land Drone 1 mid-flight and check that the cockpit shows what the drone really does.",
+  "approach": "The backend is the reference. After Land, the harness samples the cockpit (status pill, altitude, distance from home, battery) and the simulator state every ~0.7 s until the drone is down, checks the status sequence matches (in_flight → landing → standby), values stay within tolerance, and the final state is on the dock. It then compares the three sources: README (lands in place), backend (returned to the dock before descending), cockpit (followed the backend). Docs and backend disagreeing while the cockpit matches the backend is classified INTENDED, never BUG.",
+  "startState": "faults cleared · sim reset · started 2× (shorter flight; video is real time) · SIM_SEED 42 · 1440×900 · drone-1 selected",
+  "steps": [
+    {
+      "label": "Clean start at 2×",
+      "state": "ok"
+    },
+    {
+      "label": "Open cockpit, select Drone 1",
+      "state": "ok",
+      "detail": "row found via testid"
+    },
+    {
+      "label": "Take off, cruise away from the dock",
+      "state": "ok"
+    },
+    {
+      "label": "Land (POST /api/control/command)",
+      "state": "ok"
+    },
+    {
+      "label": "Follow: cockpit vs backend until the drone is down",
+      "state": "ok"
+    },
+    {
+      "label": "Classify: docs vs backend vs cockpit",
+      "state": "ok",
+      "detail": "cockpit matches backend · backend returned to dock"
+    }
+  ],
+  "verdict": {
+    "kind": "INTENDED",
+    "headline": "Land returns to the dock: intended behaviour, not flagged",
+    "sub": "README says \"down where it is\"; backend (latest commit: return-to-dock landing) flew 70 m back and landed on the dock in 15.4 s. Cockpit followed it: in_flight → landing → standby, altitude/distance within tolerance in 100 % of 21 samples, final 0.0 m / 0 m."
+  },
+  "observations": {
+    "docs": {
+      "readme": "Press Land to bring it down where it is",
+      "latestCommit": "feat(cockpit): add 2D/3D view toggle, terrain height references and return-to-dock landing"
+    },
+    "backend": {
+      "distAtLandM": 70,
+      "distWhenDescentStartedM": 0,
+      "returnedToDock": true,
+      "statusSequence": [
+        "in_flight",
+        "landing",
+        "standby"
+      ]
+    },
+    "cockpit": {
+      "statusSequence": [
+        "in_flight",
+        "landing",
+        "standby"
+      ],
+      "withinTolerance": {
+        "altitude": 1,
+        "distance": 1,
+        "status": 1
+      },
+      "final": {
+        "pill": "standby",
+        "alt": "0.0 m",
+        "dist": "0 m",
+        "battery": "95 %"
+      },
+      "samples": 21
+    },
+    "table": {
+      "columns": [
+        "source",
+        "what it says Land does",
+        "result"
+      ],
+      "rows": [
+        [
+          "Kit README",
+          "\"Press Land to bring it down where it is\"",
+          "outdated"
+        ],
+        [
+          "Latest kit commit",
+          "\"feat(cockpit): add 2D/3D view toggle, terrain height references and return-to-dock landing\"",
+          "intended change"
+        ],
+        [
+          "Backend (simulator state)",
+          "flew back 70 m to the dock, descended at 0.0 m from it",
+          "returns to dock"
+        ],
+        [
+          "Cockpit",
+          "status in_flight → landing → standby; final 0.0 m / 0 m",
+          "matches backend"
+        ]
+      ]
+    }
+  },
+  "locators": {
+    "device row Drone 1": "testid"
+  },
+  "apiCalls": [
+    {
+      "method": "DELETE",
+      "path": "/api/control/fault",
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/sim",
+      "body": {
+        "action": "reset"
+      },
+      "status": 200,
+      "atS": 0.2
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/sim",
+      "body": {
+        "action": "start",
+        "speed": 2
+      },
+      "status": 200,
+      "atS": 0.2
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/command",
+      "body": {
+        "deviceId": "drone-1",
+        "type": "takeoff"
+      },
+      "status": 200,
+      "atS": 5
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/command",
+      "body": {
+        "deviceId": "drone-1",
+        "type": "land"
+      },
+      "status": 200,
+      "atS": 13.5
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/control/fault",
+      "status": 200,
+      "atS": 39.8
+    }
+  ],
+  "evidence": {
+    "video": "videos/P1.webm",
+    "trace": "traces/P1.zip",
+    "screenshot": "shots/P1-verdict.png"
+  },
+  "env": {
+    "cockpitUrl": "http://localhost:5173",
+    "apiUrl": "http://localhost:4000",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "speed": 2,
+    "seed": 42,
+    "headed": true
+  },
+  "startedAt": "2026-09-26T08:19:07.879Z",
+  "durationS": 39.8
+}

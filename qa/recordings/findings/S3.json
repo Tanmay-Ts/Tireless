@@ -1,0 +1,199 @@
+{
+  "id": "S3",
+  "title": "Map 2D/3D view toggle is covered by the video tile on phones",
+  "category": "Responsive · Devices · Map controls",
+  "brief": "Works in modern browsers on phones, tablets, laptops and desktops",
+  "rootCause": "mobile-video-tile-overlaps-map-controls",
+  "description": "The operator switches the map between 3D and 2D with the 2D/3D toggle at the bottom of the map. The product must work on phones, tablets, laptops and desktops. We open the cockpit at a laptop size and at six tablet/phone sizes and check that every control usable on the laptop can still be seen and pressed. Expected: the map view toggle is visible and pressable at every size.",
+  "approach": "Deterministic Playwright run, zero LLM calls. The cockpit runs in a device frame (an iframe whose CSS viewport is exactly the device size, so the app's own media queries apply) next to the evidence panel. At each size the harness audits every button, link and device row: displayed, inside the viewport or reachable by scrolling, and not covered: document.elementFromPoint() at the control's visible centre must return the control itself. The laptop result is the baseline; anything usable there and unusable elsewhere is flagged, which also catches controls pushed off-screen or hidden by a mutation. The failing control is then tapped like a user (real pointer) and the effect checked through its aria-pressed state, Playwright's own actionability check is recorded, and the result is re-checked in a real iPhone SE emulation context (touch, DPR 2, mobile UA).",
+  "startState": "faults cleared · sim reset · started 1× · SIM_SEED 42 · cockpit in a device frame: laptop 1366×768 → 768 → 412 → 390 → 360 → 320 → 375 px",
+  "steps": [
+    {
+      "label": "Clean start: clear faults, reset, start sim",
+      "state": "ok"
+    },
+    {
+      "label": "Laptop 1366×768: audit every control (baseline)",
+      "state": "ok",
+      "detail": "7 usable controls on the laptop"
+    },
+    {
+      "label": "Laptop control: tap \"2D\", map switches",
+      "state": "ok",
+      "detail": "aria-pressed=\"true\" after tap, then back to 3D"
+    },
+    {
+      "label": "Resize through 6 tablet/phone sizes, audit every control",
+      "state": "ok"
+    },
+    {
+      "label": "iPhone SE: operator taps \"2D\"",
+      "state": "fail",
+      "detail": "aria-pressed false → false · Playwright: <div data-state=\"off\" class=\"video-placeholder\" data-testid="
+    },
+    {
+      "label": "Cross-check in emulated iPhone SE (touch, DPR 2)",
+      "state": "fail",
+      "detail": "emulated iPhone SE: covered by div[data-testid=video-player].video-placeholder"
+    }
+  ],
+  "verdict": {
+    "kind": "BUG",
+    "headline": "2D/3D toggle unusable at 320–412 px",
+    "sub": "At phone widths the FPV video tile sits on top of the map view toggle (elementFromPoint hits the tile). Tapping \"2D\" on an iPhone SE leaves aria-pressed=false: the map cannot be switched. Usable on laptop and iPad. Confirmed in real iPhone SE emulation: covered by div[data-testid=video-player].video-placeholder."
+  },
+  "observations": {
+    "perSize": {
+      "1366×768": {
+        "toggle": [],
+        "other": []
+      },
+      "768×1024": {
+        "toggle": [],
+        "other": []
+      },
+      "412×915": {
+        "toggle": [
+          "2D toggle: covered by div[data-testid=video-player].video-placeholder"
+        ],
+        "other": []
+      },
+      "390×844": {
+        "toggle": [
+          "2D toggle: covered by div[data-testid=video-player].video-placeholder",
+          "3D toggle: covered by div[data-testid=video-player].video-placeholder"
+        ],
+        "other": []
+      },
+      "360×740": {
+        "toggle": [
+          "2D toggle: covered by div[data-testid=video-player].video-placeholder",
+          "3D toggle: covered by div[data-testid=video-player].video-placeholder"
+        ],
+        "other": []
+      },
+      "320×568": {
+        "toggle": [
+          "2D toggle: covered by div[data-testid=video-player].video-placeholder",
+          "3D toggle: covered by div[data-testid=video-player].video-placeholder"
+        ],
+        "other": []
+      },
+      "375×667": {
+        "toggle": [
+          "2D toggle: covered by div[data-testid=video-player].video-placeholder",
+          "3D toggle: covered by div[data-testid=video-player].video-placeholder"
+        ],
+        "other": []
+      }
+    },
+    "iphoneSE": {
+      "playwrightClick": "<div data-state=\"off\" class=\"video-placeholder\" data-testid=\"video-player\">Video off</div> from <div class=\"video-tile\">…</div> subtree intercepts pointer events",
+      "ariaPressedBefore": "false",
+      "ariaPressedAfterTap": "false",
+      "why": ".video-tile (z-index 5) comes later in the DOM than .map-view-toggle (z-index 5), so it paints on top"
+    },
+    "crossCheck": {
+      "state": "covered",
+      "reason": "covered by div[data-testid=video-player].video-placeholder",
+      "tapError": "<div data-state=\"off\" class=\"video-placeholder\" data-testid=\"video-player\">Video off</div> from <div class=\"video-tile\">…</div> subtree intercepts pointer events",
+      "pressed": "false"
+    },
+    "table": {
+      "columns": [
+        "screen",
+        "map view toggle",
+        "other controls"
+      ],
+      "rows": [
+        [
+          "1366×768 (laptop, baseline)",
+          "usable",
+          "usable"
+        ],
+        [
+          "768×1024 (iPad Mini)",
+          "usable",
+          "usable"
+        ],
+        [
+          "412×915 (Pixel 7)",
+          "2D toggle: covered by div[data-testid=video-player].video-placeholder",
+          "usable"
+        ],
+        [
+          "390×844 (iPhone 13)",
+          "2D toggle: covered by div[data-testid=video-player].video-placeholder; 3D toggle: covered by div[data-testid=video-player].video-placeholder",
+          "usable"
+        ],
+        [
+          "360×740 (Galaxy S8)",
+          "2D toggle: covered by div[data-testid=video-player].video-placeholder; 3D toggle: covered by div[data-testid=video-player].video-placeholder",
+          "usable"
+        ],
+        [
+          "320×568 (Small phone)",
+          "2D toggle: covered by div[data-testid=video-player].video-placeholder; 3D toggle: covered by div[data-testid=video-player].video-placeholder",
+          "usable"
+        ],
+        [
+          "375×667 (iPhone SE)",
+          "2D toggle: covered by div[data-testid=video-player].video-placeholder; 3D toggle: covered by div[data-testid=video-player].video-placeholder",
+          "usable"
+        ]
+      ]
+    }
+  },
+  "locators": {},
+  "apiCalls": [
+    {
+      "method": "DELETE",
+      "path": "/api/control/fault",
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/sim",
+      "body": {
+        "action": "reset"
+      },
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/sim",
+      "body": {
+        "action": "start",
+        "speed": 1
+      },
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/control/fault",
+      "status": 200,
+      "atS": 39.5
+    }
+  ],
+  "evidence": {
+    "video": "videos/S3.webm",
+    "trace": "traces/S3.zip",
+    "screenshot": "shots/S3-verdict.png"
+  },
+  "env": {
+    "cockpitUrl": "http://localhost:5173",
+    "apiUrl": "http://localhost:4000",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "speed": 1,
+    "seed": 42,
+    "headed": true
+  },
+  "startedAt": "2026-09-26T07:54:11.602Z",
+  "durationS": 39.5
+}

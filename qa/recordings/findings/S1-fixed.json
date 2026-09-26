@@ -1,0 +1,608 @@
+{
+  "id": "S1-fixed",
+  "title": "S1 on a fixed cockpit: stale data is flagged, so S1 reports PASS",
+  "category": "Live data · Network/recovery · Freshness",
+  "brief": "makes clear whether information is live, delayed, stale, disconnected or unavailable",
+  "rootCause": "control-fixed-build",
+  "section": "precision",
+  "description": "Precision control for S1. The same scenario, oracle and thresholds, run against a copy of the cockpit patched to show \"stale · N s ago\" when position data is older than 3 s. If the S1 oracle were simply always red, it would flag this build too. Expected: PASS.",
+  "approach": "Deterministic Playwright run, zero LLM calls. Ground truth comes from the backend (/api/health simulator link), our own socket.io client (frame age for drone-1), and /api/control/state polled straight from the simulator (the drone keeps flying). While live, the harness checks the UI matches truth (battery, altitude, speed, distance, status) and records every freshness cue on screen as a baseline. After the fault and a 5 s grace (the cockpit's own heartbeat threshold), it samples the page every second and looks for any NEW cue that data is stale: stale/offline/disconnected/\"N s ago\" wording, data-state/aria/class markers, dashed-out or dimmed telemetry. Wording is matched by meaning. It also cross-checks the UI against itself (claimed speed vs unchanged distance) and against the simulator (real distance keeps growing). BUG only if every judged sample shows no cue; a precondition that fails (fault not active) is SETUP-FAILED, not a bug.",
+  "startState": "cockpit patched with qa/mutants/control-fix-stale.patch (shows \"stale · N s ago\" after 3 s without data) · faults cleared · sim reset (all drones standby at 100 %) · started 1× · SIM_SEED 42 · 1440×900 · drone-1 selected",
+  "steps": [
+    {
+      "label": "Clean start: clear faults, reset, start sim",
+      "state": "ok"
+    },
+    {
+      "label": "Open cockpit, select Drone 1",
+      "state": "ok",
+      "detail": "row found via testid"
+    },
+    {
+      "label": "Take off Drone 1, wait for in_flight",
+      "state": "ok"
+    },
+    {
+      "label": "Control: UI = truth and no stale cue while live",
+      "state": "ok",
+      "detail": "all fields within tolerance, no stale cue"
+    },
+    {
+      "label": "Inject sim-offline (30 s window)",
+      "state": "ok",
+      "detail": "/api/health → simulator: disconnected (0.0 s after POST)"
+    },
+    {
+      "label": "Grace 5 s: UI may flag staleness",
+      "state": "ok",
+      "detail": "UI flagged it after 4.1 s"
+    },
+    {
+      "label": "Observe: does the UI say data is stale?",
+      "state": "ok",
+      "detail": "cue after 4.1 s: \"stale · 4 s ago\""
+    }
+  ],
+  "verdict": {
+    "kind": "PASS",
+    "headline": "UI flagged stale data after 4.1 s",
+    "sub": "Cue: \"stale · 4 s ago\""
+  },
+  "observations": {
+    "control": {
+      "samples": 3,
+      "rowFails": {},
+      "falseStale": [],
+      "crossPanel": {
+        "agree": true,
+        "classes": [
+          {
+            "source": "status pill",
+            "value": "in_flight",
+            "cls": "airborne"
+          },
+          {
+            "source": "device row",
+            "value": "Drone 1 Dock 1 dock open in_flight",
+            "cls": "airborne"
+          },
+          {
+            "source": "simulator",
+            "value": "in_flight",
+            "cls": "airborne"
+          }
+        ]
+      },
+      "baseline": []
+    },
+    "fault": {
+      "kind": "sim-offline",
+      "seconds": 30,
+      "graceMs": 5000,
+      "staleMs": 3000
+    },
+    "samples": [
+      {
+        "tS": 0.2,
+        "judged": false,
+        "fail": false,
+        "newCues": [],
+        "ui": {
+          "badge": "socket connected",
+          "pill": "in_flight",
+          "row": "Drone 1 Dock 1 dock open in_flight",
+          "battery": "98 %",
+          "alt": "30.0 m",
+          "hSpeed": "10.0 m/s",
+          "homeDist": "65 m"
+        },
+        "truth": {
+          "stale": false,
+          "ageMs": 285,
+          "simulator": "connected",
+          "status": "in_flight",
+          "distM": 60.0000000000016,
+          "speed": 9.990009988292488
+        }
+      },
+      {
+        "tS": 1.1,
+        "judged": false,
+        "fail": false,
+        "newCues": [],
+        "ui": {
+          "badge": "socket connected",
+          "pill": "in_flight",
+          "row": "Drone 1 Dock 1 dock open in_flight",
+          "battery": "98 %",
+          "alt": "30.0 m",
+          "hSpeed": "10.0 m/s",
+          "homeDist": "65 m"
+        },
+        "truth": {
+          "stale": true,
+          "ageMs": 1252,
+          "simulator": "disconnected",
+          "status": "in_flight",
+          "distM": 69.99999999710995,
+          "speed": 9.985022465447669
+        }
+      },
+      {
+        "tS": 2.1,
+        "judged": false,
+        "fail": false,
+        "newCues": [],
+        "ui": {
+          "badge": "socket connected",
+          "pill": "in_flight",
+          "row": "Drone 1 Dock 1 dock open in_flight",
+          "battery": "98 %",
+          "alt": "30.0 m",
+          "hSpeed": "10.0 m/s",
+          "homeDist": "65 m"
+        },
+        "truth": {
+          "stale": true,
+          "ageMs": 2265,
+          "simulator": "disconnected",
+          "status": "in_flight",
+          "distM": 79.99999999122612,
+          "speed": 9.985022461928297
+        }
+      },
+      {
+        "tS": 3.1,
+        "judged": false,
+        "fail": false,
+        "newCues": [],
+        "ui": {
+          "badge": "socket connected",
+          "pill": "in_flight",
+          "row": "Drone 1 Dock 1 dock open in_flight",
+          "battery": "98 %",
+          "alt": "30.0 m",
+          "hSpeed": "10.0 m/s",
+          "homeDist": "65 m"
+        },
+        "truth": {
+          "stale": true,
+          "ageMs": 3260,
+          "simulator": "disconnected",
+          "status": "in_flight",
+          "distM": 89.99999999056786,
+          "speed": 9.98502246304608
+        }
+      },
+      {
+        "tS": 4.1,
+        "judged": false,
+        "fail": false,
+        "newCues": [
+          "stale · 4 s ago",
+          "stale · 4 s ago"
+        ],
+        "ui": {
+          "badge": "socket connected",
+          "pill": "in_flight",
+          "row": "Drone 1 Dock 1 dock open in_flight",
+          "battery": "98 %",
+          "alt": "30.0 m",
+          "hSpeed": "10.0 m/s",
+          "homeDist": "65 m"
+        },
+        "truth": {
+          "stale": true,
+          "ageMs": 4277,
+          "simulator": "disconnected",
+          "status": "in_flight",
+          "distM": 99.99999999620486,
+          "speed": 9.99500250125359
+        }
+      },
+      {
+        "tS": 5.2,
+        "judged": true,
+        "fail": false,
+        "newCues": [
+          "stale · 5 s ago",
+          "stale · 5 s ago"
+        ],
+        "ui": {
+          "badge": "socket connected",
+          "pill": "in_flight",
+          "row": "Drone 1 Dock 1 dock open in_flight",
+          "battery": "98 %",
+          "alt": "30.0 m",
+          "hSpeed": "10.0 m/s",
+          "homeDist": "65 m"
+        },
+        "truth": {
+          "stale": true,
+          "ageMs": 5358,
+          "simulator": "disconnected",
+          "status": "in_flight",
+          "distM": 109.99999998925338,
+          "speed": 9.99999999936116
+        }
+      },
+      {
+        "tS": 6.2,
+        "judged": true,
+        "fail": false,
+        "newCues": [
+          "stale · 6 s ago",
+          "stale · 6 s ago"
+        ],
+        "ui": {
+          "badge": "socket connected",
+          "pill": "in_flight",
+          "row": "Drone 1 Dock 1 dock open in_flight",
+          "battery": "98 %",
+          "alt": "30.0 m",
+          "hSpeed": "10.0 m/s",
+          "homeDist": "65 m"
+        },
+        "truth": {
+          "stale": true,
+          "ageMs": 6343,
+          "simulator": "disconnected",
+          "status": "in_flight",
+          "distM": 119.99999998750377,
+          "speed": 9.99000998568607
+        }
+      },
+      {
+        "tS": 7.2,
+        "judged": true,
+        "fail": false,
+        "newCues": [
+          "stale · 7 s ago",
+          "stale · 7 s ago"
+        ],
+        "ui": {
+          "badge": "socket connected",
+          "pill": "in_flight",
+          "row": "Drone 1 Dock 1 dock open in_flight",
+          "battery": "98 %",
+          "alt": "30.0 m",
+          "hSpeed": "10.0 m/s",
+          "homeDist": "65 m"
+        },
+        "truth": {
+          "stale": true,
+          "ageMs": 7335,
+          "simulator": "disconnected",
+          "status": "in_flight",
+          "distM": 129.99999999175643,
+          "speed": 9.985022467576705
+        }
+      },
+      {
+        "tS": 8.2,
+        "judged": true,
+        "fail": false,
+        "newCues": [
+          "stale · 8 s ago",
+          "stale · 8 s ago"
+        ],
+        "ui": {
+          "badge": "socket connected",
+          "pill": "in_flight",
+          "row": "Drone 1 Dock 1 dock open in_flight",
+          "battery": "98 %",
+          "alt": "30.0 m",
+          "hSpeed": "10.0 m/s",
+          "homeDist": "65 m"
+        },
+        "truth": {
+          "stale": true,
+          "ageMs": 8335,
+          "simulator": "disconnected",
+          "status": "in_flight",
+          "distM": 139.99999999296958,
+          "speed": 9.990009992771327
+        }
+      },
+      {
+        "tS": 9.2,
+        "judged": true,
+        "fail": false,
+        "newCues": [
+          "stale · 9 s ago",
+          "stale · 9 s ago"
+        ],
+        "ui": {
+          "badge": "socket connected",
+          "pill": "in_flight",
+          "row": "Drone 1 Dock 1 dock open in_flight",
+          "battery": "98 %",
+          "alt": "30.0 m",
+          "hSpeed": "10.0 m/s",
+          "homeDist": "65 m"
+        },
+        "truth": {
+          "stale": true,
+          "ageMs": 9355,
+          "simulator": "disconnected",
+          "status": "in_flight",
+          "distM": 149.99999999005774,
+          "speed": 9.995002497937904
+        }
+      },
+      {
+        "tS": 10.2,
+        "judged": true,
+        "fail": false,
+        "newCues": [
+          "stale · 10 s ago",
+          "stale · 10 s ago"
+        ],
+        "ui": {
+          "badge": "socket connected",
+          "pill": "in_flight",
+          "row": "Drone 1 Dock 1 dock open in_flight",
+          "battery": "98 %",
+          "alt": "30.0 m",
+          "hSpeed": "10.0 m/s",
+          "homeDist": "65 m"
+        },
+        "truth": {
+          "stale": true,
+          "ageMs": 10334,
+          "simulator": "disconnected",
+          "status": "in_flight",
+          "distM": 159.99999999339386,
+          "speed": 10.000000000253745
+        }
+      },
+      {
+        "tS": 11.3,
+        "judged": true,
+        "fail": false,
+        "newCues": [
+          "stale · 11 s ago",
+          "stale · 11 s ago"
+        ],
+        "ui": {
+          "badge": "socket connected",
+          "pill": "in_flight",
+          "row": "Drone 1 Dock 1 dock open in_flight",
+          "battery": "98 %",
+          "alt": "30.0 m",
+          "hSpeed": "10.0 m/s",
+          "homeDist": "65 m"
+        },
+        "truth": {
+          "stale": true,
+          "ageMs": 11381,
+          "simulator": "disconnected",
+          "status": "in_flight",
+          "distM": 174.99999999024328,
+          "speed": 9.996001599483197
+        }
+      },
+      {
+        "tS": 12.2,
+        "judged": true,
+        "fail": false,
+        "newCues": [
+          "stale · 12 s ago",
+          "stale · 12 s ago"
+        ],
+        "ui": {
+          "badge": "socket connected",
+          "pill": "in_flight",
+          "row": "Drone 1 Dock 1 dock open in_flight",
+          "battery": "98 %",
+          "alt": "30.0 m",
+          "hSpeed": "10.0 m/s",
+          "homeDist": "65 m"
+        },
+        "truth": {
+          "stale": true,
+          "ageMs": 12342,
+          "simulator": "disconnected",
+          "status": "in_flight",
+          "distM": 179.99999998871357,
+          "speed": 9.995002496465121
+        }
+      }
+    ],
+    "judged": {
+      "total": 8,
+      "withoutCue": 0
+    },
+    "firstCueS": 4.1,
+    "motionContradiction": {
+      "span": 11.09,
+      "claimed": 10,
+      "moved": 0,
+      "expected": 110.9,
+      "contradiction": true
+    },
+    "table": {
+      "columns": [
+        "t after fault",
+        "truth: last frame",
+        "truth: simulator",
+        "UI badge",
+        "UI status",
+        "UI H-speed",
+        "UI dist.",
+        "real dist.",
+        "new stale cue"
+      ],
+      "rows": [
+        [
+          "5.2 s",
+          "5.4 s ago",
+          "disconnected",
+          "socket connected",
+          "in_flight",
+          "10.0 m/s",
+          "65 m",
+          "110 m",
+          "\"stale · 5 s ago\""
+        ],
+        [
+          "6.2 s",
+          "6.3 s ago",
+          "disconnected",
+          "socket connected",
+          "in_flight",
+          "10.0 m/s",
+          "65 m",
+          "120 m",
+          "\"stale · 6 s ago\""
+        ],
+        [
+          "7.2 s",
+          "7.3 s ago",
+          "disconnected",
+          "socket connected",
+          "in_flight",
+          "10.0 m/s",
+          "65 m",
+          "130 m",
+          "\"stale · 7 s ago\""
+        ],
+        [
+          "8.2 s",
+          "8.3 s ago",
+          "disconnected",
+          "socket connected",
+          "in_flight",
+          "10.0 m/s",
+          "65 m",
+          "140 m",
+          "\"stale · 8 s ago\""
+        ],
+        [
+          "9.2 s",
+          "9.4 s ago",
+          "disconnected",
+          "socket connected",
+          "in_flight",
+          "10.0 m/s",
+          "65 m",
+          "150 m",
+          "\"stale · 9 s ago\""
+        ],
+        [
+          "10.2 s",
+          "10.3 s ago",
+          "disconnected",
+          "socket connected",
+          "in_flight",
+          "10.0 m/s",
+          "65 m",
+          "160 m",
+          "\"stale · 10 s ago\""
+        ],
+        [
+          "11.3 s",
+          "11.4 s ago",
+          "disconnected",
+          "socket connected",
+          "in_flight",
+          "10.0 m/s",
+          "65 m",
+          "175 m",
+          "\"stale · 11 s ago\""
+        ],
+        [
+          "12.2 s",
+          "12.3 s ago",
+          "disconnected",
+          "socket connected",
+          "in_flight",
+          "10.0 m/s",
+          "65 m",
+          "180 m",
+          "\"stale · 12 s ago\""
+        ]
+      ]
+    }
+  },
+  "locators": {
+    "device row Drone 1": "testid",
+    "socket badge": "testid",
+    "flight status pill": "testid",
+    "Battery": "testid",
+    "Altitude RLT": "testid",
+    "H-Speed": "testid",
+    "Dist. from home": "testid"
+  },
+  "apiCalls": [
+    {
+      "method": "DELETE",
+      "path": "/api/control/fault",
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/sim",
+      "body": {
+        "action": "reset"
+      },
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/sim",
+      "body": {
+        "action": "start",
+        "speed": 1
+      },
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/command",
+      "body": {
+        "deviceId": "drone-1",
+        "type": "takeoff"
+      },
+      "status": 200,
+      "atS": 4.8
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/fault",
+      "body": {
+        "kind": "sim-offline",
+        "seconds": 30
+      },
+      "status": 200,
+      "atS": 21
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/control/fault",
+      "status": 200,
+      "atS": 44
+    }
+  ],
+  "evidence": {
+    "video": "videos/S1-fixed.webm",
+    "trace": "traces/S1-fixed.zip",
+    "screenshot": "shots/S1-fixed-verdict.png"
+  },
+  "env": {
+    "cockpitUrl": "http://localhost:5173",
+    "apiUrl": "http://localhost:4000",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "speed": 1,
+    "seed": 42,
+    "headed": true
+  },
+  "startedAt": "2026-09-26T08:51:28.949Z",
+  "durationS": 44
+}

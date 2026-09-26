@@ -28,14 +28,52 @@ npm run report                         # out/report.md + out/findings.json (also
 npx playwright show-trace out/traces/S1.zip
 ```
 
-### Recording the submission videos on a laptop
+### Recording on a Windows laptop (PowerShell)
 
-1. **Start the kit in dev mode.** From the kit folder run `docker compose watch` (cockpit on :4010, source edits sync live, which the mutant runs need). Wait for `Watch enabled`, then check that `curl localhost:4000/api/health` reports `simulator: connected`. If the map is black, set `MAP_TILES=osm` in the kit's `.env`. Close the control panel tab and other heavy apps (8 GB RAM).
-2. **Set up the harness (once):** `cd qa && npm install && npx playwright install chromium && cp .env.example .env`. In `.env`, set `COCKPIT_URL` (default :4010; `http://localhost:5173` in npm mode) and `KIT_DIR` (absolute path of the kit checkout).
-3. **Record S1–S4 and P1:** `npm run record`, about 4 minutes. A headed Chromium opens; do not touch it.
-4. **Record the mutation matrix:** `npm run mutants`, about 9 minutes. It plants each bug, runs K, reverts the kit, and writes `out/mutants.json`.
-5. **Make the upload files:** `npm run video` (needs ffmpeg). This writes `out/mp4/*.mp4` (one per run) and `out/level1-all-scenarios.mp4` (all runs back to back).
-6. **Draft the write-up:** `npm run report`, then open `out/report.md`. Upload the mp4s to Drive with "Anyone with the link" access, test the links in an incognito window, and paste them over the `<paste Drive link …>` placeholders.
+The laptop records **only S1–S4 and P1** (`npm run record`). The mutation runs (`K-*`) and the S1 fixed-cockpit control (`S1-fixed`) were recorded in the cloud and are committed in `qa/recordings/` (webm + mp4, findings, `mutants.json`). `npm run report` and `npm run video` pick them up automatically, so the laptop does not need `KIT_DIR` or `npm run mutants`.
+
+**1. Start the kit** (in the kit folder; production images are lighter on 8 GB RAM):
+
+```powershell
+docker compose -f docker-compose.yml up --build -d
+Invoke-RestMethod http://localhost:4000/api/health
+```
+
+Wait until the health call shows `simulator : connected`. If the map is black, set `MAP_TILES=osm` in the kit's `.env` and run the `up` command again.
+
+**2. Set up the harness** (once, in the `qa` folder):
+
+```powershell
+cd qa
+npm install
+npx playwright install chromium
+Copy-Item .env.example .env
+winget install Gyan.FFmpeg
+```
+
+Close PowerShell and open a new window after installing ffmpeg, so it is on `PATH`. `.env` needs no change for Docker (the cockpit is on :4010). In npm mode, set `COCKPIT_URL=http://localhost:5173`.
+
+**3. Record S1–S4 and P1** (about 4 minutes; a Chromium window opens, do not touch it; it may be larger than the screen, which does not affect the recording):
+
+```powershell
+npm run record
+```
+
+**4. Make the upload files:**
+
+```powershell
+npm run video -- S1 S2 S3 S4 P1 S1-fixed K-clean K-m3-battery-off-by-10 K-m7-device-list-offscreen-phone K-h2-wording-change
+```
+
+This writes one mp4 per run in `out\mp4\` and `out\level1-all-scenarios.mp4` with those runs back to back (ids not recorded locally come from `qa\recordings\videos\`). To include every run, list them all: the ids are the file names in `out\videos\` and `qa\recordings\videos\`.
+
+**5. Draft the write-up:**
+
+```powershell
+npm run report
+```
+
+Open `out\report.md`. Upload the mp4s to Drive with "Anyone with the link" access, test the links in an incognito window, and paste them over the `<paste Drive link …>` placeholders.
 
 `HEADED=0` runs headless (the video is still recorded). Each scenario resets the simulator itself, so
 nothing else needs to run between scenarios. Keep the control panel closed while recording so its

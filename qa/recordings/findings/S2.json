@@ -1,0 +1,199 @@
+{
+  "id": "S2",
+  "title": "Out-of-order telemetry rendered as current: drone jumps backwards",
+  "category": "Live data · Changing network conditions · Telemetry integrity",
+  "brief": "makes clear whether information is live, delayed, stale, disconnected or unavailable",
+  "rootCause": "ignores-message-timestamp",
+  "description": "Networks deliver telemetry late and occasionally out of order. When a newer position has already been shown, an older one must not replace it: the operator would see the drone jump backwards and read a wrong position, distance and track. We delay the telemetry path by 3 s with jitter (the kit's socket-delay fault) while Drone 1 flies a straight line away from its dock, so its true distance from home only increases. Expected: the cockpit keeps showing the newest data (discarding late, older frames) and makes clear the data is delayed.",
+  "approach": "Deterministic Playwright run, zero LLM calls. A MutationObserver in the page records every value \"Dist. from home\" displays, with wall-clock time. Our own socket.io client subscribes to the same topics and receives the same frames in the same order as the cockpit, each with the simulator timestamp. Control first: 5 s without the fault, the displayed distance must never decrease. Then socket-delay 3000 ms for 22 s. Every backward step in the UI larger than 2 m is matched to the frame that caused it (same value, arrived within 600 ms) and counts only if that frame's timestamp is older than a frame already delivered. BUG requires at least 2 such matched jumps; if the network produced fewer than 2 out-of-order frames the run is SETUP-FAILED, not PASS.",
+  "startState": "faults cleared · sim reset · started 1× · SIM_SEED 42 · 1440×900 · drone-1 selected, flying straight out",
+  "steps": [
+    {
+      "label": "Clean start: clear faults, reset, start sim",
+      "state": "ok"
+    },
+    {
+      "label": "Open cockpit, select Drone 1",
+      "state": "ok",
+      "detail": "row found via testid"
+    },
+    {
+      "label": "Take off Drone 1, wait for in_flight",
+      "state": "ok"
+    },
+    {
+      "label": "Control 5 s: distance only grows (no fault)",
+      "state": "ok",
+      "detail": "12 updates, 0 backward jumps"
+    },
+    {
+      "label": "Inject socket-delay 3000 ms (+≤50 % jitter)",
+      "state": "ok",
+      "detail": "GET /api/control/fault lists socket-delay"
+    },
+    {
+      "label": "Record every UI update for 22 s",
+      "state": "ok"
+    },
+    {
+      "label": "Match each backward jump to a late frame",
+      "state": "fail",
+      "detail": "6/6 jumps caused by late frames"
+    }
+  ],
+  "verdict": {
+    "kind": "BUG",
+    "headline": "UI rendered older telemetry over newer: 6 backward jumps",
+    "sub": "With 3000 ms delay + jitter, 6/36 position frames arrived out of order. The cockpit displayed them anyway: distance-from-home went backwards 6× (e.g. 115 → 110 m) while the drone flew straight away from its dock. No \"delayed\" cue while data was 3.1–4.4 s old."
+  },
+  "observations": {
+    "control": {
+      "updates": 12,
+      "backwardJumps": 0
+    },
+    "fault": {
+      "kind": "socket-delay",
+      "valueMs": 3000,
+      "observeMs": 22000
+    },
+    "truth": {
+      "frames": 36,
+      "outOfOrder": 6,
+      "ageMinS": 3.1,
+      "ageMaxS": 4.4
+    },
+    "ui": {
+      "updates": 36,
+      "backwardJumps": 6,
+      "matched": 6
+    },
+    "delayCue": [],
+    "alsoObserved": [
+      {
+        "rootCause": "freshness-not-tracked",
+        "note": "Data arrived 3.1–4.4 s late with no \"delayed\" cue anywhere in the cockpit (same root cause as S1)."
+      }
+    ],
+    "table": {
+      "columns": [
+        "t after delay on",
+        "UI showed",
+        "then UI showed",
+        "cause (our socket)"
+      ],
+      "rows": [
+        [
+          "6.6 s",
+          "115 m",
+          "110 m",
+          "frame 500 ms older than one already delivered"
+        ],
+        [
+          "8.4 s",
+          "130 m",
+          "125 m",
+          "frame 501 ms older than one already delivered"
+        ],
+        [
+          "10.7 s",
+          "155 m",
+          "150 m",
+          "frame 501 ms older than one already delivered"
+        ],
+        [
+          "14.4 s",
+          "195 m",
+          "190 m",
+          "frame 501 ms older than one already delivered"
+        ],
+        [
+          "18.0 s",
+          "225 m",
+          "220 m",
+          "frame 502 ms older than one already delivered"
+        ],
+        [
+          "19.5 s",
+          "245 m",
+          "240 m",
+          "frame 500 ms older than one already delivered"
+        ]
+      ]
+    }
+  },
+  "locators": {
+    "device row Drone 1": "testid",
+    "Dist. from home": "testid"
+  },
+  "apiCalls": [
+    {
+      "method": "DELETE",
+      "path": "/api/control/fault",
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/sim",
+      "body": {
+        "action": "reset"
+      },
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/sim",
+      "body": {
+        "action": "start",
+        "speed": 1
+      },
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/command",
+      "body": {
+        "deviceId": "drone-1",
+        "type": "takeoff"
+      },
+      "status": 200,
+      "atS": 5
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/fault",
+      "body": {
+        "kind": "socket-delay",
+        "value": 3000
+      },
+      "status": 200,
+      "atS": 22.9
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/control/fault",
+      "status": 200,
+      "atS": 57.7
+    }
+  ],
+  "evidence": {
+    "video": "videos/S2.webm",
+    "trace": "traces/S2.zip",
+    "screenshot": "shots/S2-verdict.png"
+  },
+  "env": {
+    "cockpitUrl": "http://localhost:5173",
+    "apiUrl": "http://localhost:4000",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "speed": 1,
+    "seed": 42,
+    "headed": true
+  },
+  "startedAt": "2026-09-26T07:53:13.390Z",
+  "durationS": 57.7
+}

@@ -1,0 +1,213 @@
+{
+  "id": "K-h2-wording-change",
+  "title": "Planted: Harmless: wording changed",
+  "category": "Mutation testing · Regression net",
+  "brief": "makes clear whether information is live, delayed, stale, disconnected or unavailable",
+  "rootCause": "mutant:h2-wording-change",
+  "section": "mutation",
+  "description": "Mutation run \"h2-wording-change\": \"FlytBase Cockpit\"→\"FlytBase Operations\", \"Devices\"→\"Fleet\", \"socket …\"→\"link …\", \"Dist. from home\"→\"Distance to home\". expected: PASS (must not raise a false alarm).",
+  "approach": "Runs the six cockpit invariants K1–K6 (see system design). Each passes on the unmodified kit; the mutant runner checks that planted bugs fail the expected invariant and harmless changes pass.",
+  "startState": "planted bug: \"FlytBase Cockpit\"→\"FlytBase Operations\", \"Devices\"→\"Fleet\", \"socket …\"→\"link …\", \"Dist. from home\"→\"Distance to home\" · expected: PASS (must not raise a false alarm) · faults cleared · sim reset · 1× · SIM_SEED 42",
+  "steps": [
+    {
+      "label": "Clean start, select + take off Drone 1",
+      "state": "ok"
+    },
+    {
+      "label": "K1 Presence: everything the clean build shows",
+      "state": "ok",
+      "detail": "19 items present"
+    },
+    {
+      "label": "K2 Values match the backend",
+      "state": "ok",
+      "detail": "5 values within tolerance (3 samples)"
+    },
+    {
+      "label": "K3 Flight status agrees across panels",
+      "state": "ok",
+      "detail": "list, pill and backend agree"
+    },
+    {
+      "label": "K4 Live data not shown as offline",
+      "state": "ok",
+      "detail": "no stale/offline cue while live"
+    },
+    {
+      "label": "K5 Link loss shown, then recovers",
+      "state": "ok",
+      "detail": "\"link reconnecting\" after 0.0 s, cleared after 7.2 s"
+    },
+    {
+      "label": "K6 Phone 390 px: controls still reachable",
+      "state": "ok",
+      "detail": "10 controls as reachable as in the clean build"
+    }
+  ],
+  "verdict": {
+    "kind": "PASS",
+    "headline": "all 6 invariants hold",
+    "sub": "Harmless change: no false alarm."
+  },
+  "observations": {
+    "mutant": {
+      "id": "h2-wording-change",
+      "planted": "\"FlytBase Cockpit\"→\"FlytBase Operations\", \"Devices\"→\"Fleet\", \"socket …\"→\"link …\", \"Dist. from home\"→\"Distance to home\"",
+      "expect": []
+    },
+    "checks": {
+      "K1": {
+        "ok": true,
+        "summary": "19 items present",
+        "details": []
+      },
+      "K2": {
+        "ok": true,
+        "summary": "5 values within tolerance (3 samples)",
+        "details": []
+      },
+      "K3": {
+        "ok": true,
+        "summary": "list, pill and backend agree"
+      },
+      "K4": {
+        "ok": true,
+        "summary": "no stale/offline cue while live"
+      },
+      "K5": {
+        "ok": true,
+        "summary": "\"link reconnecting\" after 0.0 s, cleared after 7.2 s"
+      },
+      "K6": {
+        "ok": true,
+        "summary": "10 controls as reachable as in the clean build",
+        "details": []
+      }
+    },
+    "failed": [],
+    "table": {
+      "columns": [
+        "check",
+        "result"
+      ],
+      "rows": [
+        [
+          "K1 Presence: everything the clean build shows",
+          "pass: 19 items present"
+        ],
+        [
+          "K2 Values match the backend",
+          "pass: 5 values within tolerance (3 samples)"
+        ],
+        [
+          "K3 Flight status agrees across panels",
+          "pass: list, pill and backend agree"
+        ],
+        [
+          "K4 Live data not shown as offline",
+          "pass: no stale/offline cue while live"
+        ],
+        [
+          "K5 Link loss shown, then recovers",
+          "pass: \"link reconnecting\" after 0.0 s, cleared after 7.2 s"
+        ],
+        [
+          "K6 Phone 390 px: controls still reachable",
+          "pass: 10 controls as reachable as in the clean build"
+        ]
+      ]
+    }
+  },
+  "locators": {
+    "device row Drone 1": "testid",
+    "socket badge": "testid",
+    "flight status pill": "testid",
+    "Battery": "testid",
+    "Altitude RLT": "testid",
+    "Altitude AGL": "testid",
+    "Altitude ASL": "testid",
+    "H-Speed": "testid",
+    "V-Speed": "testid",
+    "Heading": "testid",
+    "Wind": "testid",
+    "Dist. from home": "testid",
+    "map": "testid",
+    "video tile": "testid",
+    "2D toggle": "testid",
+    "3D toggle": "testid",
+    "device row Drone 2": "testid",
+    "device row Drone 3": "testid",
+    "device row Drone 4": "testid"
+  },
+  "apiCalls": [
+    {
+      "method": "DELETE",
+      "path": "/api/control/fault",
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/sim",
+      "body": {
+        "action": "reset"
+      },
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/sim",
+      "body": {
+        "action": "start",
+        "speed": 1
+      },
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/command",
+      "body": {
+        "deviceId": "drone-1",
+        "type": "takeoff"
+      },
+      "status": 200,
+      "atS": 5.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/fault",
+      "body": {
+        "kind": "socket-refuse",
+        "seconds": 6
+      },
+      "status": 200,
+      "atS": 24.2
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/control/fault",
+      "status": 200,
+      "atS": 45.4
+    }
+  ],
+  "evidence": {
+    "video": "videos/K-h2-wording-change.webm",
+    "trace": "traces/K-h2-wording-change.zip",
+    "screenshot": "shots/K-h2-wording-change-verdict.png"
+  },
+  "env": {
+    "cockpitUrl": "http://localhost:5173",
+    "apiUrl": "http://localhost:4000",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "speed": 1,
+    "seed": 42,
+    "headed": true
+  },
+  "startedAt": "2026-09-26T08:34:19.400Z",
+  "durationS": 45.4
+}

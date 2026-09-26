@@ -1,0 +1,128 @@
+{
+  "ranAt": "2026-09-26T08:51:24.095Z",
+  "summary": {
+    "caught": 7,
+    "planted": 7,
+    "falseAlarms": 0,
+    "harmless": 3,
+    "errors": 0
+  },
+  "rows": [
+    {
+      "id": "clean",
+      "title": "Unmodified kit",
+      "planted": "nothing (records the clean baseline)",
+      "expected": "PASS",
+      "failed": [],
+      "outcome": "correctly passed",
+      "video": "videos/K-clean.webm",
+      "verdict": "PASS: all 6 invariants hold"
+    },
+    {
+      "id": "m1-badge-always-connected",
+      "title": "Connection shown as live when it is down",
+      "planted": "SocketBadge.tsx: badge text and colour hard-coded to \"socket connected\"",
+      "expected": "K5",
+      "failed": [
+        "K5"
+      ],
+      "outcome": "caught",
+      "video": "videos/K-m1-badge-always-connected.webm",
+      "verdict": "BUG: caught by K5"
+    },
+    {
+      "id": "m2-online-shown-offline",
+      "title": "Live connection shown as offline",
+      "planted": "SocketBadge.tsx: shows \"socket disconnected\" while connected",
+      "expected": "K4",
+      "failed": [
+        "K4"
+      ],
+      "outcome": "caught",
+      "video": "videos/K-m2-online-shown-offline.webm",
+      "verdict": "BUG: caught by K4"
+    },
+    {
+      "id": "m3-battery-off-by-10",
+      "title": "Battery 10 % too low",
+      "planted": "TelemetryPanel.tsx: battery value − 10",
+      "expected": "K2",
+      "failed": [
+        "K2"
+      ],
+      "outcome": "caught",
+      "video": "videos/K-m3-battery-off-by-10.webm",
+      "verdict": "BUG: caught by K2"
+    },
+    {
+      "id": "m4-wrong-drone-telemetry",
+      "title": "Telemetry of the wrong drone",
+      "planted": "TelemetryPanel.tsx: reads data of drone N+1 for selected drone N",
+      "expected": "K2 + K3",
+      "failed": [
+        "K2",
+        "K3"
+      ],
+      "outcome": "caught",
+      "video": "videos/K-m4-wrong-drone-telemetry.webm",
+      "verdict": "BUG: caught by K2 + K3"
+    },
+    {
+      "id": "m5-flying-shown-as-landed",
+      "title": "Flying drone shown as landed",
+      "planted": "TelemetryPanel.tsx: status pill shows \"standby\" while in_flight",
+      "expected": "K3",
+      "failed": [
+        "K3"
+      ],
+      "outcome": "caught",
+      "video": "videos/K-m5-flying-shown-as-landed.webm",
+      "verdict": "BUG: caught by K3"
+    },
+    {
+      "id": "m6-connection-badge-removed",
+      "title": "Connection indicator removed",
+      "planted": "CockpitPage.tsx: <SocketBadge /> deleted",
+      "expected": "K1 + K5",
+      "failed": [
+        "K1",
+        "K5"
+      ],
+      "outcome": "caught",
+      "video": "videos/K-m6-connection-badge-removed.webm",
+      "verdict": "BUG: caught by K1 + K5"
+    },
+    {
+      "id": "m7-device-list-offscreen-phone",
+      "title": "Device list pushed off-screen on phones",
+      "planted": "styles.css (< 800 px): side panel translateX(-110vw)",
+      "expected": "K6",
+      "failed": [
+        "K6"
+      ],
+      "outcome": "caught",
+      "video": "videos/K-m7-device-list-offscreen-phone.webm",
+      "verdict": "BUG: caught by K6"
+    },
+    {
+      "id": "h1-testids-renamed",
+      "title": "Harmless: test ids renamed",
+      "planted": "testids.ts: socket-status, telemetry-battery, telemetry-hspeed renamed (UI unchanged)",
+      "expected": "PASS",
+      "failed": [],
+      "outcome": "correctly passed",
+      "video": "videos/K-h1-testids-renamed.webm",
+      "verdict": "PASS: all 6 invariants hold"
+    },
+    {
+      "id": "h2-wording-change",
+      "title": "Harmless: wording changed",
+      "planted": "\"FlytBase Cockpit\"→\"FlytBase Operations\", \"Devices\"→\"Fleet\", \"socket …\"→\"link …\", \"Dist. from home\"→\"Distance to home\"",
+      "expected": "PASS",
+      "failed": [],
+      "outcome": "correctly passed",
+      "video": "videos/K-h2-wording-change.webm",
+      "verdict": "PASS: all 6 invariants hold"
+    }
+  ]
+}

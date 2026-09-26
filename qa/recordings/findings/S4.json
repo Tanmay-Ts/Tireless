@@ -1,0 +1,174 @@
+{
+  "id": "S4",
+  "title": "Selecting a drone on a phone does not show its telemetry",
+  "category": "Responsive · Devices · Operator workflow",
+  "brief": "Selecting a drone shows its state, telemetry, map location, video, warnings and freshness together",
+  "rootCause": "mobile-side-panel-fixed-220px",
+  "description": "An operator selects a drone to see how it is doing: status, battery, altitude, speed, distance, next to the map and video. The brief says selecting a drone shows these together, and that the product works on phones. On a laptop this holds. We repeat the same action on phone-sized screens while Drone 1 is flying. Expected: after tapping the drone, its status and key telemetry (battery, altitude, speed) are visible without hunting for them.",
+  "approach": "Deterministic Playwright run, zero LLM calls. The cockpit runs in a device frame (iframe with the exact device viewport, so the app's media queries apply). After the select action the harness probes the selected row, status pill, all 9 telemetry values, the map and the video: an item counts as visible only if it is inside the viewport, at least 60 % unclipped by any scroll container, and document.elementFromPoint() at its visible centre returns the item itself. Laptop first as the control (everything visible together), then iPhone SE. The operator is then allowed to scroll the side panel with the mouse wheel and visibility is measured again, to state precisely what a phone user can see at once. Repeated on iPhone 13 and Pixel 7, and re-checked in a real iPhone SE emulation context (touch, DPR 2).",
+  "startState": "faults cleared · sim reset · started 1× · SIM_SEED 42 · Drone 1 taking off (live data) · cockpit in a device frame: laptop 1366×768, then iPhone SE 375×667",
+  "steps": [
+    {
+      "label": "Clean start, take off Drone 1 (live values)",
+      "state": "ok"
+    },
+    {
+      "label": "Laptop: select Drone 1, all shown together (control)",
+      "state": "ok",
+      "detail": "status + 9/9 telemetry + map + video visible together"
+    },
+    {
+      "label": "iPhone SE: operator taps Drone 1",
+      "state": "ok"
+    },
+    {
+      "label": "What is visible right after selecting?",
+      "state": "fail",
+      "detail": "0/9 telemetry visible · status pill hidden (0 % in view) · clipped by aside.cockpit-left (375×220 px)"
+    },
+    {
+      "label": "Operator scrolls the side panel to find telemetry",
+      "state": "ok",
+      "detail": "9 wheel steps · at most 7/9 values at once"
+    },
+    {
+      "label": "What is visible together after scrolling?",
+      "state": "fail"
+    },
+    {
+      "label": "Cross-check: iPhone 13, Pixel 7, emulated iPhone SE",
+      "state": "fail"
+    }
+  ],
+  "verdict": {
+    "kind": "BUG",
+    "headline": "phone: selecting a drone shows 0/9 telemetry values",
+    "sub": "On iPhone SE, after tapping Drone 1 (in flight), its status, battery, altitude and speed are not on screen: they sit below a fixed-height side panel (aside.cockpit-left (375×220 px)) filled by the device list. Scrolling that panel shows at most 7/9 values at once and loses the selected row. Laptop: 9/9 together with map and video. Also on: iPhone 13, Pixel 7, emulated iPhone SE (touch, DPR 2)."
+  },
+  "observations": {
+    "laptop": {
+      "telemetryVisible": 9,
+      "pill": "visible",
+      "map": "visible",
+      "video": "visible"
+    },
+    "iphoneSE": {
+      "afterTap": {
+        "telemetryVisible": 0,
+        "pill": "hidden (0 % in view)",
+        "row": "visible",
+        "map": "visible",
+        "video": "visible",
+        "clippedBy": "aside.cockpit-left (375×220 px)"
+      },
+      "afterScrolling": {
+        "maxTelemetryAtOnce": 7,
+        "rowWithKeyTelemetry": false,
+        "neverVisible": []
+      }
+    },
+    "otherDevices": {
+      "iPhone 13 390×844": "0/9 telemetry visible, status pill hidden (0 % in view)",
+      "Pixel 7 412×915": "0/9 telemetry visible, status pill hidden (0 % in view)",
+      "emulated iPhone SE (touch, DPR 2)": "0/9 telemetry visible, status pill hidden (0 % in view)"
+    },
+    "table": {
+      "columns": [
+        "screen",
+        "right after selecting Drone 1",
+        "after scrolling the side panel"
+      ],
+      "rows": [
+        [
+          "Laptop 1366×768 (control)",
+          "status visible, 9/9 telemetry, map visible, video visible",
+          "not needed"
+        ],
+        [
+          "iPhone SE 375×667",
+          "status hidden (0 % in view), 0/9 telemetry, map visible, video visible",
+          "at most 7/9 at once; selected row scrolled out of view"
+        ],
+        [
+          "iPhone 13 390×844",
+          "0/9 telemetry visible, status pill hidden (0 % in view)",
+          ""
+        ],
+        [
+          "Pixel 7 412×915",
+          "0/9 telemetry visible, status pill hidden (0 % in view)",
+          ""
+        ],
+        [
+          "emulated iPhone SE (touch, DPR 2)",
+          "0/9 telemetry visible, status pill hidden (0 % in view)",
+          ""
+        ]
+      ]
+    }
+  },
+  "locators": {
+    "device row Drone 1": "testid"
+  },
+  "apiCalls": [
+    {
+      "method": "DELETE",
+      "path": "/api/control/fault",
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/sim",
+      "body": {
+        "action": "reset"
+      },
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/sim",
+      "body": {
+        "action": "start",
+        "speed": 1
+      },
+      "status": 200,
+      "atS": 0.1
+    },
+    {
+      "method": "POST",
+      "path": "/api/control/command",
+      "body": {
+        "deviceId": "drone-1",
+        "type": "takeoff"
+      },
+      "status": 200,
+      "atS": 0.4
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/control/fault",
+      "status": 200,
+      "atS": 36.9
+    }
+  ],
+  "evidence": {
+    "video": "videos/S4.webm",
+    "trace": "traces/S4.zip",
+    "screenshot": "shots/S4-verdict.png"
+  },
+  "env": {
+    "cockpitUrl": "http://localhost:5173",
+    "apiUrl": "http://localhost:4000",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "speed": 1,
+    "seed": 42,
+    "headed": true
+  },
+  "startedAt": "2026-09-26T07:54:51.578Z",
+  "durationS": 36.9
+}

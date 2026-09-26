@@ -5,7 +5,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { cfg } from './config.ts';
+import { cfg, QA_ROOT } from './config.ts';
 import type { Finding } from './runner.ts';
 
 const SYSTEM_DESIGN = `## 1. System design
@@ -81,8 +81,11 @@ const K_TEXT = `The invariant suite K is the regression net for *new* bugs, such
 | K5 Link loss shown | \`socket-refuse\` for 6 s gives a new stale/offline cue within 5 s, which clears after recovery. |
 | K6 Phone | At 390 px every control reachable in the clean build at that size still is. |`;
 
+const RECORDINGS = path.join(QA_ROOT, 'recordings');
+
 function mutationSection(outDir: string) {
-  const p = path.join(outDir, 'mutants.json');
+  // Prefer a local run; fall back to the matrix recorded in the cloud and committed in qa/recordings/.
+  const p = [path.join(outDir, 'mutants.json'), path.join(RECORDINGS, 'mutants.json')].find((f) => existsSync(f)) ?? path.join(outDir, 'mutants.json');
   if (!existsSync(p)) return `### Mutation testing\n\n${K_TEXT}\n\n_No mutation run yet: \`KIT_DIR=… npm run mutants\`._\n`;
   const m = JSON.parse(readFileSync(p, 'utf8')) as {
     ranAt: string;
@@ -115,7 +118,7 @@ ${f.description}
 
 **How:** ${f.approach}
 
-**Result: ${f.verdict.kind}.** ${f.verdict.sub ?? f.verdict.headline}
+**Result: ${f.verdict.kind}: ${f.verdict.headline}.** ${f.verdict.sub ?? ''}
 ${obs.table ? `\n${table(obs.table)}\n` : ''}
 **Video:** _<paste Drive link: ${f.evidence.video}>_
 `;
@@ -124,13 +127,12 @@ ${obs.table ? `\n${table(obs.table)}\n` : ''}
 }
 
 export function writeReport(outDir = cfg.outDir) {
-  const dir = path.join(outDir, 'findings');
-  const all: Finding[] = existsSync(dir)
-    ? readdirSync(dir)
-        .filter((f) => f.endsWith('.json'))
-        .map((f) => JSON.parse(readFileSync(path.join(dir, f), 'utf8')) as Finding)
-        .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
-    : [];
+  const load = (dir: string) =>
+    existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(readFileSync(path.join(dir, f), 'utf8')) as Finding) : [];
+  // Local runs win; anything not run locally (e.g. S1-fixed on a laptop) comes from the committed cloud recordings.
+  const local = load(path.join(outDir, 'findings'));
+  const cloud = load(path.join(RECORDINGS, 'findings')).filter((c) => !local.some((l) => l.id === c.id));
+  const all: Finding[] = [...local, ...cloud].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
   const findings = all.filter((f) => (f.section ?? 'scenario') === 'scenario');
   const precision = all.filter((f) => f.section === 'precision');
 
